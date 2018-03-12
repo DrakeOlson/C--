@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{485D6C1D-DB45-496F-A8C0-17523D69002A}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Compilers</RootNamespace>
-    <AssemblyName>Compilers</AssemblyName>
+    <RootNamespace>Compiler</RootNamespace>
+    <AssemblyName>Compiler</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -42,11 +42,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConstantEntry.cs" />
+    <Compile Include="FunctionEntry.cs" />
     <Compile Include="Globals.cs" />
     <Compile Include="Lexer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Parser.cs" />
+    <Compile Include="SymbolTable.cs" />
+    <Compile Include="TableEntry.cs" />
+    <Compile Include="VariableEntry.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
