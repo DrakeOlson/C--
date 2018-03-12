@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace Compiler
 {
-    class ConstantEntry
+    public abstract class ConstantEntry : TableEntry
     {
+        public int offset;
     }
 }

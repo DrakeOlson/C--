@@ -12,5 +12,10 @@ namespace Compiler
         int NumberOfParameters;
         VariableType ReturnType;
         LinkedList<VariableType> ParameterList;
+
+        public override void printEntry()
+        {
+            Console.WriteLine($"{lexeme} {tokenType} {depth} {SizeOfLocal} {NumberOfParameters} {ReturnType} {ParameterList}");
+        }
     }
 }

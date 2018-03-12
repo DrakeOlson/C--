@@ -52,6 +52,8 @@
     <Compile Include="SymbolTable.cs" />
     <Compile Include="TableEntry.cs" />
     <Compile Include="VariableEntry.cs" />
+    <Compile Include="IntegerConstantEntry.cs" />
+    <Compile Include="RealConstantEntry.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

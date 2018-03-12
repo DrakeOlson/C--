@@ -19,12 +19,8 @@ namespace Compiler
 
         public void insert(string lexeme, Globals.Symbol symbol, int depth)
         {
-            LinkedList <TableEntry> found = lookup(lexeme);
-            if(found != null && found.First.Value.depth == depth)
-            {
-                Console.WriteLine($"Error: The symbol {lexeme} with type {symbol.ToString()} is already inserted with depth {depth}.");
-            }
-            else if(found == null)
+            TableEntry found = lookup(lexeme);
+            if(found == null)
             {
                 LinkedList<TableEntry> lexemeList = new LinkedList<TableEntry>();
                 lexemeList.AddFirst(new VariableEntry()
@@ -38,7 +34,7 @@ namespace Compiler
                 });
                 table.Add(lexeme.GetHashCode() % tableSize,lexemeList);
             }
-            else if(found != null && found.First.Value.depth != depth)
+            else if(found != null && found.depth != depth)
             {
                 table[hash(lexeme)].AddFirst(new VariableEntry()
                 {
@@ -51,21 +47,30 @@ namespace Compiler
                 });
             }
         }
-
-        public LinkedList<TableEntry> lookup(string lexeme)
+        public TableEntry lookup(string lexeme)
         {
-            return table[hash(lexeme)];
+            LinkedList<TableEntry> foundList = table[hash(lexeme)];
+
+            foreach(TableEntry t in foundList)
+            {
+                if(t.lexeme == lexeme)
+                {
+                    return t;
+                }
+            }
+
+            return null;
         }
 
         public void deleteDepth(int depth)
         {
             foreach(LinkedList<TableEntry> list in table.Values)
             {
-                foreach(TableEntry value in list)
+                foreach(TableEntry val in list)
                 {
-                    if(value.depth == depth)
+                    if(val.depth == depth)
                     {
-                        list.Remove(value);
+                        list.Remove(val);
                     }
                 }
             }
@@ -75,9 +80,9 @@ namespace Compiler
         {
             foreach (LinkedList<TableEntry> list in table.Values)
             {
-                foreach (TableEntry value in list)
+                foreach (TableEntry val in list)
                 {
-                    
+                    val.printEntry();
                 }
             }
         }
