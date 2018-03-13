@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 
 namespace Compiler
 {
-    class SymbolTable
+    public class SymbolTable
     {
-        const int tableSize = 211;
-        Dictionary<int,LinkedList<TableEntry>> table;
+        private const int tableSize = 211;
+        public Dictionary<int,LinkedList<TableEntry>> table;
 
         public SymbolTable()
         {
@@ -49,14 +49,21 @@ namespace Compiler
         }
         public TableEntry lookup(string lexeme)
         {
-            LinkedList<TableEntry> foundList = table[hash(lexeme)];
-
-            foreach(TableEntry t in foundList)
+            try
             {
-                if(t.lexeme == lexeme)
+                LinkedList<TableEntry> foundList = table[hash(lexeme)];
+
+                foreach (TableEntry t in foundList)
                 {
-                    return t;
+                    if (t.lexeme == lexeme)
+                    {
+                        return t;
+                    }
                 }
+            }
+            catch (KeyNotFoundException)
+            {
+                return null;
             }
 
             return null;
@@ -66,11 +73,14 @@ namespace Compiler
         {
             foreach(LinkedList<TableEntry> list in table.Values)
             {
-                foreach(TableEntry val in list)
+                if(list != null && list.Count > 0)
                 {
-                    if(val.depth == depth)
+                    foreach (TableEntry val in list.ToList())
                     {
-                        list.Remove(val);
+                        if (val.depth == depth)
+                        {
+                            list.Remove(val);
+                        }
                     }
                 }
             }

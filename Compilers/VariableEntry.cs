@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Compiler
 {
-    class VariableEntry : TableEntry
+    public class VariableEntry : TableEntry
     {
         public VariableType variableType;
         public int Offset;
