@@ -1,8 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿/*
+ * Author: Drake Olson
+ * Class: Compiler Construction
+ * Instructor: Dr. Hamer
+ * Date: 1/30/18
+ * Description: This file holds base members for entry into the symbol table
+ */
 
 namespace Compiler
 {

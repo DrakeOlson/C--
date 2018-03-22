@@ -1,4 +1,12 @@
-﻿using System;
+﻿/*
+ * Author: Drake Olson
+ * Class: Compiler Construction
+ * Instructor: Dr. Hamer
+ * Date: 1/30/18
+ * Description: This file holds members for entry into the symbol table
+ */
+
+using System;
 namespace Compiler
 {
     public class RealConstantEntry : ConstantEntry
@@ -6,7 +14,7 @@ namespace Compiler
         float value;
         public override void printEntry()
         {
-            Console.WriteLine($"{lexeme} {tokenType} {depth} {offset} {value}");
+            Console.WriteLine($"{lexeme,-20} {tokenType.ToString(),-10} {depth,-3}");
         }
     }
 }

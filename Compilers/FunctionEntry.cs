@@ -1,21 +1,26 @@
-﻿using System;
+﻿/*
+ * Author: Drake Olson
+ * Class: Compiler Construction
+ * Instructor: Dr. Hamer
+ * Date: 3/17/18
+ * Description: This file holds members for a function entry into the symbol table
+ */
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Compiler
 {
     public class FunctionEntry : TableEntry
     {
-        int SizeOfLocal;
-        int NumberOfParameters;
-        VariableType ReturnType;
-        LinkedList<VariableType> ParameterList;
+        int SizeOfLocal = 0;
+        int NumberOfParameters = 0;
+        VariableType ReturnType = 0;
+        LinkedList<VariableType> ParameterList = null;
 
         public override void printEntry()
         {
-            Console.WriteLine($"{lexeme} {tokenType} {depth} {SizeOfLocal} {NumberOfParameters} {ReturnType} {ParameterList}");
+            Console.WriteLine($"{lexeme,-20} {tokenType.ToString(),-10} {depth,-3}");
         }
     }
 }

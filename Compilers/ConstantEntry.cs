@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿/// <summary>
+/// Contains the abstract class for a Constant Entry. 
+/// Children: Real,Integer
+/// </summary>
 
 namespace Compiler
 {
