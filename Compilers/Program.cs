@@ -16,10 +16,20 @@ namespace Compiler
         public static void Main(string[] args)
         {
             SymbolTable testTable = new SymbolTable();
-
-
-            //Keep so you can see output or need a pause for any reason
-            Console.Read();
+            if (args.Length == 0)
+            {
+                Console.WriteLine($"Usage:{args[0]} filename.");
+                return;
+            }
+            else
+            {
+                Parser p = new Parser(args[0]);
+                p.Run();
+                if (Globals.Token == Globals.Symbol.eoft)
+                {
+                    Console.WriteLine("Reached End Of File");
+                }
+            }
         }
     }
 }

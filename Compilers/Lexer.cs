@@ -367,6 +367,7 @@ namespace Compiler
             Globals.SymbolDictionary.Add("break", Globals.Symbol.breakT);
             Globals.SymbolDictionary.Add("continue", Globals.Symbol.continueT);
             Globals.SymbolDictionary.Add("void", Globals.Symbol.voidT);
+            Globals.SymbolDictionary.Add("const", Globals.Symbol.constT);
             Globals.SymbolDictionary.Add("(", Globals.Symbol.lparenT);
             Globals.SymbolDictionary.Add(")", Globals.Symbol.rparenT);
             Globals.SymbolDictionary.Add("{", Globals.Symbol.lbraceT);

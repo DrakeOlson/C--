@@ -11,7 +11,7 @@ namespace Compiler
 {
     public class RealConstantEntry : ConstantEntry
     {
-        float value;
+        public float value;
         public override void printEntry()
         {
             Console.WriteLine($"{lexeme,-20} {tokenType.ToString(),-10} {depth,-3}");

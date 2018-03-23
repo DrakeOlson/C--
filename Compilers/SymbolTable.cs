@@ -24,6 +24,24 @@ namespace Compiler
             table = new Dictionary<int, LinkedList<TableEntry>>(tableSize);
         }
         /// <summary>
+        /// Takes a table entry,hashes and inserts it into the symbol table
+        /// </summary>
+        /// <param name="entry"></param>
+        public void insert(TableEntry entry)
+        {
+            TableEntry found = lookup(entry.lexeme);
+            if (found == null)
+            {
+                LinkedList<TableEntry> lexemeList = new LinkedList<TableEntry>();
+                lexemeList.AddFirst(entry);
+                table.Add(hash(entry.lexeme), lexemeList);
+            }
+            else if (found != null)
+            {
+                table[hash(entry.lexeme)].AddFirst(entry);
+            }
+        }
+        /// <summary>
         /// Takes the base items of a Table Entry, hashes and insert it into the symbol table
         /// </summary>
         /// <param name="lexeme"></param>

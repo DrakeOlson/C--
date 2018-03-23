@@ -11,7 +11,13 @@ namespace Compiler
 {
     public class Parser
     {
-        Lexer l = null;
+        private Lexer l = null;
+        private SymbolTable symbolTable = new SymbolTable();
+        private int variablDepth = 1;
+        private int constDepth = 1;
+        private int overallDepth = 1;
+        private int overallOffset = 0;
+        private enum Offset  {character = 1,integer = 2,real = 4};
         /// <summary>
         /// Default Constructor to create a Parser Object
         /// </summary>
@@ -35,7 +41,7 @@ namespace Compiler
         }
 
         /// <summary>
-        /// Prog() handels the grammar PROG	->	TYPE idt REST PROG | lambda
+        /// Prog() handels the grammar PROG	->	TYPE idt REST PROG | lambda | const idt = num ; PROG
         /// </summary>
         private void Prog()
         {
@@ -45,6 +51,49 @@ namespace Compiler
                 Match(Globals.Symbol.idT);
                 Rest();
                 Prog();
+            }
+            else if(Globals.Lexeme == "const")
+            {
+                Match(Globals.Symbol.constT);
+                Match(Globals.Symbol.idT);
+                Match(Globals.Symbol.assignopT);
+                //Global Variable Scope
+                if(Globals.Value != null || Globals.ValueReal != null)
+                {
+                    if (Globals.Value != null)
+                    {
+                        IntegerConstantEntry entry = new IntegerConstantEntry()
+                        {
+                            lexeme = Globals.Lexeme,
+                            offset = overallOffset,
+                            depth = overallDepth,
+                            tokenType = Globals.Token,
+                            value = Globals.Value.GetValueOrDefault()
+                        };
+                        symbolTable.insert(entry);
+                        overallOffset += (int)Offset.integer;
+                    }
+                    else if (Globals.ValueReal != null)
+                    {
+                        RealConstantEntry entry = new RealConstantEntry()
+                        {
+                            lexeme = Globals.Lexeme,
+                            offset = overallOffset,
+                            depth = overallDepth,
+                            tokenType = Globals.Token,
+                            value = Globals.Value.GetValueOrDefault()
+                        };
+                        symbolTable.insert(entry);
+                        overallOffset += (int)Offset.real;
+                    }
+                    Match(Globals.Symbol.semicolonT);
+                    Prog();
+                }
+                else
+                {
+                    Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: No right side of assignment. Expecting a numerical value after the equals sign.");
+                }
+
             }
             else
             {
@@ -82,6 +131,7 @@ namespace Compiler
             if(Globals.Token == Globals.Symbol.lparenT)
             {
                 Match(Globals.Symbol.lparenT);
+                //Function Variable Scope
                 ParameterList();
                 Match(Globals.Symbol.rparenT);
                 Compound();
@@ -136,7 +186,7 @@ namespace Compiler
             Match(Globals.Symbol.rbraceT);
         }
         /// <summary>
-        /// Decl() handels the rule DECL	->	TYPE IDLIST | lambda
+        /// Decl() handels the rule DECL	->	TYPE IDLIST | lambda | const idt = num ; DECL
         /// </summary>
         private void Decl()
         {

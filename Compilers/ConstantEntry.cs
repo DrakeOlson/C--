@@ -5,8 +5,13 @@
 
 namespace Compiler
 {
-    public abstract class ConstantEntry : TableEntry
+    public class ConstantEntry : TableEntry
     {
         public int offset;
+
+        public override void printEntry()
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

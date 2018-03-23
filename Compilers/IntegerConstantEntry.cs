@@ -11,7 +11,7 @@ namespace Compiler
 {
     public class IntegerConstantEntry : ConstantEntry
     {
-        int value= 0;
+        public int value= 0;
 
         public override void printEntry()
         {
