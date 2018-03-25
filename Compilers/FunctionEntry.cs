@@ -13,10 +13,10 @@ namespace Compiler
 {
     public class FunctionEntry : TableEntry
     {
-        int SizeOfLocal = 0;
-        int NumberOfParameters = 0;
-        VariableType ReturnType = 0;
-        LinkedList<VariableType> ParameterList = null;
+        public int SizeOfLocal = 0;
+        public int NumberOfParameters = 0;
+        public VariableType ReturnType = 0;
+        public LinkedList<VariableType> ParameterList = null;
 
         public override void printEntry()
         {
