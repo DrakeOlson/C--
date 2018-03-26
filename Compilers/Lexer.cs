@@ -394,5 +394,19 @@ namespace Compiler
             Globals.SymbolDictionary.Add(">=", Globals.Symbol.relopT);
             Globals.SymbolDictionary.Add(">", Globals.Symbol.relopT);
         }
+
+        public char getNextChar(){
+            int tempCurrentPosition = currentPosition;
+            int tempLineNumber = Globals.LineNumber;
+            if(tempCurrentPosition >= lines[tempLineNumber].Length){
+                tempLineNumber++;
+                tempCurrentPosition = 0;
+            }
+            while(String.IsNullOrWhiteSpace(lines[tempLineNumber][tempCurrentPosition].ToString()))
+            {
+                tempCurrentPosition++;
+            }
+            return lines[tempLineNumber][tempCurrentPosition];
+        }
     }
 }

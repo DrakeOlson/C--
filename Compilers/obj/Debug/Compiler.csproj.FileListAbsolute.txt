@@ -1,0 +1,6 @@
+/Users/drake/C--/Compilers/obj/Debug/Compiler.csproj.CoreCompileInputs.cache
+/Users/drake/C--/Compilers/bin/Debug/Compiler.exe.config
+/Users/drake/C--/Compilers/bin/Debug/Compiler.exe
+/Users/drake/C--/Compilers/bin/Debug/Compiler.pdb
+/Users/drake/C--/Compilers/obj/Debug/Compiler.exe
+/Users/drake/C--/Compilers/obj/Debug/Compiler.pdb

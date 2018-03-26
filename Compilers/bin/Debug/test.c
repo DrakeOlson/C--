@@ -1,0 +1,1 @@
+int main(int f,float d,char t){}

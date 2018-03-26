@@ -15,7 +15,7 @@ namespace Compiler
     {
         private Lexer l = null;
         private SymbolTable symbolTable = new SymbolTable();
-        private int overallDepth = 1;
+        private int overallDepth = 0;
         private bool isFirstOverall = true;
         private int overallOffset = 0;
         private enum Offset {character = 1,integer = 2,real = 4};
@@ -64,24 +64,20 @@ namespace Compiler
                 Type();
                 currentLexeme = Globals.Lexeme;
                 functionLexeme = Globals.Lexeme;
-                if(Globals.Token == Globals.Symbol.intT)
-                {
-                    returnType = TableEntry.VariableType.intType;
-                }
-                else if(Globals.Token == Globals.Symbol.floatT)
-                {
-                    returnType = TableEntry.VariableType.floatType;
-                }
+                char lookahead = l.getNextChar();
                 Match(Globals.Symbol.idT);
-                VariableEntry entry = new VariableEntry()
+                if(lookahead != '(')
                 {
-                    lexeme = currentLexeme,
-                    depth = overallDepth,
-                    size = currentTypeSize,
-                    Offset = overallOffset,
-                    variableType = currentVarType
-                };
-                insertSymbol(entry);
+                    VariableEntry entry = new VariableEntry()
+                    {
+                        lexeme = currentLexeme,
+                        depth = overallDepth,
+                        size = currentTypeSize,
+                        Offset = overallOffset,
+                        variableType = currentVarType
+                    };
+                    insertSymbol(entry);
+                }
                 Rest();
                 //End of a function
                 Prog();
@@ -100,7 +96,7 @@ namespace Compiler
                         IntegerConstantEntry entry = new IntegerConstantEntry()
                         {
                             lexeme = currentLexeme,
-                            offset = overallOffset,
+                            offset = 0,
                             depth = overallDepth,
                             tokenType = Globals.Token,
                             value = Globals.Value.GetValueOrDefault()
@@ -113,7 +109,7 @@ namespace Compiler
                         RealConstantEntry entry = new RealConstantEntry()
                         {
                             lexeme = currentLexeme,
-                            offset = overallOffset,
+                            offset = 0,
                             depth = overallDepth,
                             tokenType = Globals.Token,
                             value = Globals.Value.GetValueOrDefault()
@@ -146,60 +142,118 @@ namespace Compiler
             }
             else if(Globals.Token == Globals.Symbol.intT)
             {
+                returnType = TableEntry.VariableType.intType;
                 Match(Globals.Symbol.intT);
                 if (isParameter)
                 {
                     parameterOffset += (int)Offset.integer;
+                    if(isFirstOverall){
+                        parameterOffset = 0;
+                        isFirstOverall = false;
+                    }
                     numberOfLocalParameters++;
                     listOfLocalParam.AddLast(TableEntry.VariableType.intType);
                 }
                 else if(inFunction)
                 {
                     localOffset += (int)Offset.integer;
+                    if(isFirstOverall){
+                        localOffset = 0;
+                        isFirstOverall = false;
+                    }
                 }
                 else
                 {
-                    overallOffset += (int)Offset.integer;
+                    if (isFirstOverall && overallOffset == 0)
+                    {
+                        isFirstOverall = false;
+                        overallOffset = 0;
+
+                    }
+                    else
+                    {
+                        overallOffset += (int)Offset.integer;
+                    }
                 }
                 currentTypeSize = 2;
                 currentVarType = TableEntry.VariableType.intType;
             }
             else if(Globals.Token == Globals.Symbol.floatT)
             {
+                returnType = TableEntry.VariableType.floatType;
                 Match(Globals.Symbol.floatT);
                 if (isParameter)
                 {
                     parameterOffset += (int)Offset.real;
                     numberOfLocalParameters++;
                     listOfLocalParam.AddLast(TableEntry.VariableType.floatType);
+                    if (isFirstOverall)
+                    {
+                        parameterOffset = 0;
+                        isFirstOverall = false;
+                    }
                 }
                 else if (inFunction)
                 {
                     localOffset += (int)Offset.real;
+                    if (isFirstOverall)
+                    {
+                        localOffset = 0;
+                        isFirstOverall = false;
+                    }
                 }
                 else
                 {
-                    overallOffset += (int)Offset.real;
+                    if (isFirstOverall && overallOffset == 0)
+                    {
+                        isFirstOverall = false;
+                        overallOffset = 0;
+
+                    }
+                    else
+                    {
+                        overallOffset += (int)Offset.real;
+                    }
                 }
                 currentTypeSize = 4;
                 currentVarType = TableEntry.VariableType.floatType;
             }
             else if(Globals.Token == Globals.Symbol.charT)
             {
+                returnType = TableEntry.VariableType.charType;
                 Match(Globals.Symbol.charT);
                 if (isParameter)
                 {
-                    parameterOffset = (int)Offset.character;
+                    parameterOffset += (int)Offset.character;
                     numberOfLocalParameters++;
                     listOfLocalParam.AddLast(TableEntry.VariableType.charType);
+                    if (isFirstOverall)
+                    {
+                        parameterOffset = 0;
+                        isFirstOverall = false;
+                    }
                 }
                 else if (inFunction)
                 {
                     localOffset = (int)Offset.character;
+                    if (isFirstOverall)
+                    {
+                        localOffset = 0;
+                        isFirstOverall = false;
+                    }
                 }
                 else
                 {
-                    overallOffset += (int)Offset.character;
+                    if (isFirstOverall && overallOffset == 0)
+                    {
+                        isFirstOverall = false;
+                        overallOffset = 0;
+
+                    }
+                    else
+                    {
+                        overallOffset += (int)Offset.character;
+                    }
                 }
                 currentTypeSize = 1;
                 currentVarType = TableEntry.VariableType.charType;
@@ -236,26 +290,18 @@ namespace Compiler
             {
                 isParameter = true;
                 Type();
+                currentLexeme = Globals.Lexeme;
                 Match(Globals.Symbol.idT);
                 parameterOffset = 0;
-                TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
-                if (lookup.depth != overallDepth)
+                VariableEntry entry = new VariableEntry()
                 {
-                    VariableEntry entry = new VariableEntry()
-                    {
-                        lexeme = currentLexeme,
-                        depth = overallDepth,
-                        Offset = parameterOffset,
-                        size = currentTypeSize,
-                        variableType = currentVarType
-                    };
-                    symbolTable.insert(entry);
-                }
-                else
-                {
-                    Console.WriteLine($"Error: Line Number {Globals.LineNumber + 1}. The symbol {Globals.Lexeme} at that depth already exists.");
-                    Environment.Exit(-1);
-                }
+                    lexeme = currentLexeme,
+                    depth = overallDepth,
+                    Offset = parameterOffset,
+                    size = currentTypeSize,
+                    variableType = currentVarType
+                };
+                insertSymbol(entry);
                 ParamTrail();
             }
             else{
@@ -269,7 +315,9 @@ namespace Compiler
             if(Globals.Token == Globals.Symbol.commaT)
             {
                 Match(Globals.Symbol.commaT);
+                isFirstOverall = false;
                 Type();
+                currentLexeme = Globals.Lexeme;
                 Match(Globals.Symbol.idT);
                 VariableEntry entry = new VariableEntry()
                 {
@@ -280,6 +328,7 @@ namespace Compiler
                     variableType = currentVarType
                 };
                 insertSymbol(entry);
+                numberOfLocalParameters++;
                 ParamTrail();
             }
             else
@@ -306,10 +355,12 @@ namespace Compiler
                 tokenType = Globals.Symbol.idT,
                 SizeOfLocal = localOffset,
                 NumberOfParameters = numberOfLocalParameters,
-                ParameterList = listOfLocalParam
+                ParameterList = listOfLocalParam,
+                ReturnType = returnType
             };
             isParameter = false;
             inFunction = false;
+            insertSymbol(entry);
             symbolTable.deleteDepth(overallDepth);
             overallDepth--;
             localOffset = 0;
@@ -391,6 +442,7 @@ namespace Compiler
                 Match(Globals.Symbol.commaT);
                 currentLexeme = Globals.Lexeme;
                 Match(Globals.Symbol.idT);
+                overallOffset += getOffset();
                 VariableEntry entry = new VariableEntry()
                 {
                     lexeme = currentLexeme,
@@ -455,6 +507,20 @@ namespace Compiler
                 {
                     symbolTable.insert(entry);
                 }
+            }
+        }
+        private int getOffset()
+        {
+            if(currentVarType == TableEntry.VariableType.charType)
+            {
+                return 1;    
+            }
+            else if(currentVarType == TableEntry.VariableType.floatType){
+                return 4;
+            }
+            else
+            {
+                return 2;
             }
         }
     }
