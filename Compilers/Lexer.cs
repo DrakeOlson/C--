@@ -353,6 +353,7 @@ namespace Compiler
         public void DisplayToken(){
             Console.WriteLine($"{Globals.Lexeme,-30} {Globals.Token.ToString(),-13} {Globals.Attribute}");
         }
+
         /// <summary>
         /// Setup sets up the dictionary for lookup of reserved words/tokens with a symbol type.
         /// </summary>

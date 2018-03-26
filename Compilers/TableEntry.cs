@@ -13,7 +13,7 @@ namespace Compiler
         public enum VariableType { charType, intType, floatType }
         public enum EntryType { constEntry, varEntry, functionType }
 
-        public Globals.Symbol tokenType;
+        public Globals.Symbol tokenType = Globals.Symbol.idT;
         public string lexeme;
         public int depth;
 

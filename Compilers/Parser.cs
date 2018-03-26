@@ -16,6 +16,7 @@ namespace Compiler
         private Lexer l = null;
         private SymbolTable symbolTable = new SymbolTable();
         private int overallDepth = 1;
+        private bool isFirstOverall = true;
         private int overallOffset = 0;
         private enum Offset {character = 1,integer = 2,real = 4};
         private bool isParameter = false;
@@ -49,6 +50,7 @@ namespace Compiler
             {
                 Console.WriteLine($"Error: Line {Globals.LineNumber+1}: Reached end of file token with remaining tokens left over");
             }
+            Console.ReadKey();
         }
 
         /// <summary>
@@ -71,6 +73,15 @@ namespace Compiler
                     returnType = TableEntry.VariableType.floatType;
                 }
                 Match(Globals.Symbol.idT);
+                VariableEntry entry = new VariableEntry()
+                {
+                    lexeme = currentLexeme,
+                    depth = overallDepth,
+                    size = currentTypeSize,
+                    Offset = overallOffset,
+                    variableType = currentVarType
+                };
+                insertSymbol(entry);
                 Rest();
                 //End of a function
                 Prog();
@@ -146,6 +157,10 @@ namespace Compiler
                 {
                     localOffset += (int)Offset.integer;
                 }
+                else
+                {
+                    overallOffset += (int)Offset.integer;
+                }
                 currentTypeSize = 2;
                 currentVarType = TableEntry.VariableType.intType;
             }
@@ -162,6 +177,10 @@ namespace Compiler
                 {
                     localOffset += (int)Offset.real;
                 }
+                else
+                {
+                    overallOffset += (int)Offset.real;
+                }
                 currentTypeSize = 4;
                 currentVarType = TableEntry.VariableType.floatType;
             }
@@ -177,6 +196,10 @@ namespace Compiler
                 else if (inFunction)
                 {
                     localOffset = (int)Offset.character;
+                }
+                else
+                {
+                    overallOffset += (int)Offset.character;
                 }
                 currentTypeSize = 1;
                 currentVarType = TableEntry.VariableType.charType;
@@ -248,24 +271,15 @@ namespace Compiler
                 Match(Globals.Symbol.commaT);
                 Type();
                 Match(Globals.Symbol.idT);
-                TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
-                if(lookup.depth != overallDepth)
+                VariableEntry entry = new VariableEntry()
                 {
-                    VariableEntry entry = new VariableEntry()
-                    {
-                        lexeme = currentLexeme,
-                        depth = overallDepth,
-                        Offset = parameterOffset,
-                        size = currentTypeSize,
-                        variableType = currentVarType
-                    };
-                    symbolTable.insert(entry);
-                }
-                else
-                {
-                    Console.WriteLine($"Error: Line Number {Globals.LineNumber + 1}. The symbol {Globals.Lexeme} at that depth already exists.");
-                    Environment.Exit(-1);
-                }
+                    lexeme = currentLexeme,
+                    depth = overallDepth,
+                    Offset = parameterOffset,
+                    size = currentTypeSize,
+                    variableType = currentVarType
+                };
+                insertSymbol(entry);
                 ParamTrail();
             }
             else
@@ -375,7 +389,17 @@ namespace Compiler
         {
             if(Globals.Token == Globals.Symbol.commaT){
                 Match(Globals.Symbol.commaT);
+                currentLexeme = Globals.Lexeme;
                 Match(Globals.Symbol.idT);
+                VariableEntry entry = new VariableEntry()
+                {
+                    lexeme = currentLexeme,
+                    depth = overallDepth,
+                    size = currentTypeSize,
+                    Offset = overallOffset,
+                    variableType = currentVarType
+                };
+                insertSymbol(entry);
                 IdTail();
             }
             else
@@ -411,6 +435,26 @@ namespace Compiler
             else{
                 Console.WriteLine($"Error: Line {Globals.LineNumber+1}: Expecting {token.ToString()}. Received {Globals.Token.ToString()}");
                 Environment.Exit(-1);
+            }
+        }
+        private void insertSymbol(TableEntry entry)
+        {
+            TableEntry lookup = symbolTable.lookup(entry.lexeme);
+            if(lookup == null)
+            {
+                symbolTable.insert(entry);
+            }
+            else
+            {
+                if(lookup.depth == entry.depth)
+                {
+                    Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Can't insert {entry.lexeme} at depth {entry.depth} because one already exists at that depth.");
+                    Environment.Exit(-1);
+                }
+                else
+                {
+                    symbolTable.insert(entry);
+                }
             }
         }
     }
