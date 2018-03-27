@@ -94,27 +94,32 @@ namespace Compiler
                 {
                     if (Globals.Value != null)
                     {
+                        Match(Globals.Symbol.intT);
                         IntegerConstantEntry entry = new IntegerConstantEntry()
                         {
                             lexeme = currentLexeme,
                             offset = 0,
                             depth = overallDepth,
-                            tokenType = Globals.Token,
+                            tokenType = Globals.Symbol.intT,
                             value = Globals.Value.GetValueOrDefault()
                         };
+                        Globals.Value = null;
                         symbolTable.insert(entry);
                         overallOffset += (int)Offset.integer;
+
                     }
                     else if (Globals.ValueReal != null)
                     {
+                        Match(Globals.Symbol.floatT);
                         RealConstantEntry entry = new RealConstantEntry()
                         {
                             lexeme = currentLexeme,
                             offset = 0,
                             depth = overallDepth,
-                            tokenType = Globals.Token,
-                            value = Globals.Value.GetValueOrDefault()
+                            tokenType = Globals.Symbol.floatT,
+                            value = Globals.ValueReal.GetValueOrDefault()
                         };
+                        Globals.ValueReal = null;
                         symbolTable.insert(entry);
                         overallOffset += (int)Offset.real;
                     }
@@ -394,27 +399,32 @@ namespace Compiler
                 {
                     if (Globals.Value != null)
                     {
+                        Match(Globals.Symbol.intT);
                         IntegerConstantEntry entry = new IntegerConstantEntry()
                         {
                             lexeme = currentLexeme,
-                            offset = overallOffset,
+                            offset = 0,
                             depth = overallDepth,
-                            tokenType = Globals.Token,
+                            tokenType = Globals.Symbol.intT,
                             value = Globals.Value.GetValueOrDefault()
                         };
+                        Globals.Value = null;
                         symbolTable.insert(entry);
                         overallOffset += (int)Offset.integer;
+
                     }
                     else if (Globals.ValueReal != null)
                     {
+                        Match(Globals.Symbol.floatT);
                         RealConstantEntry entry = new RealConstantEntry()
                         {
                             lexeme = currentLexeme,
-                            offset = overallOffset,
+                            offset = 0,
                             depth = overallDepth,
-                            tokenType = Globals.Token,
-                            value = Globals.Value.GetValueOrDefault()
+                            tokenType = Globals.Symbol.floatT,
+                            value = Globals.ValueReal.GetValueOrDefault()
                         };
+                        Globals.ValueReal = null;
                         symbolTable.insert(entry);
                         overallOffset += (int)Offset.real;
                     }
@@ -546,7 +556,7 @@ namespace Compiler
             {
                 if(lookup.depth == entry.depth)
                 {
-                    Console.WriteLine($"Error: Line {Globals.LineNumberd}: Can't insert {entry.lexeme} at depth {entry.depth} because one already exists at that depth.");
+                    Console.WriteLine($"Error: Line {Globals.LineNumber}: Can't insert {entry.lexeme} at depth {entry.depth} because one already exists at that depth.");
                     Console.Write("Press any enter to continue...");
                     Console.ReadLine();
                     Environment.Exit(-1);

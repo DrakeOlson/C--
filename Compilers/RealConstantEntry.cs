@@ -14,7 +14,7 @@ namespace Compiler
         public float value;
         public override void printEntry()
         {
-            Console.WriteLine($"Class: Float Constant Lexeme: {lexeme,-15} Token Type:{tokenType.ToString(),-5} Depth: {depth,-3} Value Real: {value,5}");
+            Console.WriteLine($"Class: Float Constant Lexeme: {lexeme,-9} Token Type:{tokenType.ToString(),-10} Depth: {depth,-3} Offset: {offset,-3} Value Real: {value,-5}");
         }
     }
 }

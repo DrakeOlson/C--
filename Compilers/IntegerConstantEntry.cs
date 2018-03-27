@@ -15,7 +15,7 @@ namespace Compiler
 
         public override void printEntry()
         {
-            Console.WriteLine($"Class: Int Constant Lexeme: {lexeme,-15} Token Type:{tokenType.ToString(),-5} Depth: {depth,-3} Value Real: {value,5}");
+            Console.WriteLine($"Class: Int Constant Lexeme: {lexeme,-11} Token Type:{tokenType.ToString(),-10} Depth: {depth,-3} Offset: {offset,-3} Value: {value,-5}");
         }
     }
 }
