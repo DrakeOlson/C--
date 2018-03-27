@@ -11,11 +11,11 @@ namespace Compiler
 {
     public class IntegerConstantEntry : ConstantEntry
     {
-        public int value= 0;
+        public int value;
 
         public override void printEntry()
         {
-            Console.WriteLine($"{lexeme,-20} {tokenType.ToString(),-10} {depth,-3}");
+            Console.WriteLine($"Class: Int Constant Lexeme: {lexeme,-15} Token Type:{tokenType.ToString(),-5} Depth: {depth,-3} Value Real: {value,5}");
         }
     }
 }

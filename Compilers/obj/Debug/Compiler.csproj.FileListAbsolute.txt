@@ -4,3 +4,10 @@
 /Users/drake/C--/Compilers/bin/Debug/Compiler.pdb
 /Users/drake/C--/Compilers/obj/Debug/Compiler.exe
 /Users/drake/C--/Compilers/obj/Debug/Compiler.pdb
+D:\Code\Compilers\Compilers\Compilers\bin\Debug\Compiler.exe.config
+D:\Code\Compilers\Compilers\Compilers\bin\Debug\Compiler.exe
+D:\Code\Compilers\Compilers\Compilers\bin\Debug\Compiler.pdb
+D:\Code\Compilers\Compilers\Compilers\obj\Debug\Compiler.csprojResolveAssemblyReference.cache
+D:\Code\Compilers\Compilers\Compilers\obj\Debug\Compiler.csproj.CoreCompileInputs.cache
+D:\Code\Compilers\Compilers\Compilers\obj\Debug\Compiler.exe
+D:\Code\Compilers\Compilers\Compilers\obj\Debug\Compiler.pdb

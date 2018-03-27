@@ -18,7 +18,8 @@ namespace Compiler
 
         public override void printEntry()
         {
-            Console.WriteLine($"{lexeme,-20} {tokenType.ToString(),-10} {depth,-3}");
+            Console.WriteLine($"Class: Variable Lexeme: {lexeme,-15} Token Type:{tokenType.ToString(),-10} Depth: {depth,-3} Variable Type: {variableType.ToString(),5} Offset: {Offset,-3} Size Of: {size,-3}");
+
         }
     }
 }

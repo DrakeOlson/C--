@@ -20,7 +20,12 @@ namespace Compiler
 
         public override void printEntry()
         {
-            Console.WriteLine($"{lexeme,-20} {tokenType.ToString(),-10} {depth,-3}");
+            Console.Write($"Class: Function Lexeme: {lexeme,-15} Token Type:{tokenType.ToString(),-10} Depth: {depth,-3} Size Params Local: {SizeOfLocal,-3} Num of Params: {NumberOfParameters,-2} Return Type:{ReturnType.ToString(),-5}");
+            foreach(var node in ParameterList)
+            {
+                Console.Write($" {node.ToString()},");
+            }
+            Console.WriteLine();
         }
     }
 }

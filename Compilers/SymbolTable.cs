@@ -34,7 +34,14 @@ namespace Compiler
             {
                 LinkedList<TableEntry> lexemeList = new LinkedList<TableEntry>();
                 lexemeList.AddFirst(entry);
-                table.Add(hash(entry.lexeme), lexemeList);
+                try
+                {
+                    table.Add(hash(entry.lexeme), lexemeList);
+                }
+                catch (ArgumentException)
+                {
+                    table[hash(entry.lexeme)].AddFirst(entry);
+                }
             }
             else if (found != null)
             {
@@ -129,8 +136,6 @@ namespace Compiler
         /// <param name="depth"></param>
         public void writeTable(int depth)
         {
-            Console.WriteLine(String.Format("{0,-20} {1,-10} {2,-3}", "Lexeme", "TokenType", "Depth"));
-            Console.WriteLine("----------------------------------------");
             foreach (LinkedList<TableEntry> list in table.Values)
             {
                 foreach (TableEntry val in list)
@@ -141,6 +146,9 @@ namespace Compiler
                     }
                 }
             }
+            Console.Write("Press any enter to continue...");
+            Console.ReadLine();
+            Console.Clear();
         }
         /// <summary>
         /// Given a string hash the string and return it with an int that will fit in the symbol table

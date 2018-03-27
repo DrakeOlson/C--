@@ -24,6 +24,7 @@ namespace Compiler
         private int parameterOffset = 0;
         private int localOffset = 0;
         private int currentTypeSize = 0;
+        private int sizeOfLocal = 0;
         private TableEntry.VariableType currentVarType;
         private string currentLexeme = "";
         private string functionLexeme = "";
@@ -50,7 +51,7 @@ namespace Compiler
             {
                 Console.WriteLine($"Error: Line {Globals.LineNumber+1}: Reached end of file token with remaining tokens left over");
             }
-            Console.ReadKey();
+            symbolTable.writeTable(overallDepth);
         }
 
         /// <summary>
@@ -142,7 +143,6 @@ namespace Compiler
             }
             else if(Globals.Token == Globals.Symbol.intT)
             {
-                returnType = TableEntry.VariableType.intType;
                 Match(Globals.Symbol.intT);
                 if (isParameter)
                 {
@@ -180,7 +180,6 @@ namespace Compiler
             }
             else if(Globals.Token == Globals.Symbol.floatT)
             {
-                returnType = TableEntry.VariableType.floatType;
                 Match(Globals.Symbol.floatT);
                 if (isParameter)
                 {
@@ -220,7 +219,6 @@ namespace Compiler
             }
             else if(Globals.Token == Globals.Symbol.charT)
             {
-                returnType = TableEntry.VariableType.charType;
                 Match(Globals.Symbol.charT);
                 if (isParameter)
                 {
@@ -267,6 +265,7 @@ namespace Compiler
             if(Globals.Token == Globals.Symbol.lparenT)
             {
                 //functions
+                returnType = currentVarType;
                 Match(Globals.Symbol.lparenT);
                 overallDepth++;
                 ParameterList();
@@ -328,7 +327,6 @@ namespace Compiler
                     variableType = currentVarType
                 };
                 insertSymbol(entry);
-                numberOfLocalParameters++;
                 ParamTrail();
             }
             else
@@ -351,19 +349,24 @@ namespace Compiler
             FunctionEntry entry = new FunctionEntry()
             {
                 lexeme = functionLexeme,
-                depth = overallDepth,
+                depth = overallDepth - 1,
                 tokenType = Globals.Symbol.idT,
-                SizeOfLocal = localOffset,
+                SizeOfLocal = sizeOfLocal,
                 NumberOfParameters = numberOfLocalParameters,
                 ParameterList = listOfLocalParam,
                 ReturnType = returnType
             };
             isParameter = false;
             inFunction = false;
+            numberOfLocalParameters = 0;
             insertSymbol(entry);
+            symbolTable.writeTable(overallDepth);
             symbolTable.deleteDepth(overallDepth);
             overallDepth--;
+            parameterOffset = 0;
             localOffset = 0;
+            sizeOfLocal = 0;
+            listOfLocalParam.Clear();
         }
         /// <summary>
         /// Decl() handels the rule DECL	->	TYPE IDLIST | lambda | const idt = num ; DECL
@@ -372,6 +375,11 @@ namespace Compiler
         {
             if (Globals.Token == Globals.Symbol.voidT || Globals.Token == Globals.Symbol.intT || Globals.Token == Globals.Symbol.floatT || Globals.Token == Globals.Symbol.charT)
             {
+                isFirstOverall = true;
+                if (inFunction && isFirstOverall && localOffset != 0)
+                {
+                    isFirstOverall = false;
+                }
                 Type();
                 IdList();
             }
@@ -428,6 +436,23 @@ namespace Compiler
         /// </summary>
         private void IdList()
         {
+            currentLexeme = Globals.Lexeme;
+            isFirstOverall = true;
+            sizeOfLocal += currentTypeSize;
+            if (!isFirstOverall)
+            {
+                localOffset += getOffset();
+            }
+            VariableEntry entry = new VariableEntry()
+            {
+                lexeme = currentLexeme,
+                depth = overallDepth,
+                Offset = localOffset,
+                size = currentTypeSize,
+                variableType = currentVarType
+            };
+            insertSymbol(entry);
+            isFirstOverall = false;
             Match(Globals.Symbol.idT);
             IdTail();
             Match(Globals.Symbol.semicolonT);
@@ -438,20 +463,41 @@ namespace Compiler
         /// </summary>
         private void IdTail()
         {
-            if(Globals.Token == Globals.Symbol.commaT){
+            if (Globals.Token == Globals.Symbol.commaT) {
                 Match(Globals.Symbol.commaT);
                 currentLexeme = Globals.Lexeme;
                 Match(Globals.Symbol.idT);
-                overallOffset += getOffset();
-                VariableEntry entry = new VariableEntry()
+
+                if (inFunction)
                 {
-                    lexeme = currentLexeme,
-                    depth = overallDepth,
-                    size = currentTypeSize,
-                    Offset = overallOffset,
-                    variableType = currentVarType
-                };
-                insertSymbol(entry);
+                    sizeOfLocal += currentTypeSize;
+                    if (!isFirstOverall)
+                    {
+                        localOffset += getOffset();
+                    }
+                    VariableEntry entry = new VariableEntry()
+                    {
+                        lexeme = currentLexeme,
+                        depth = overallDepth,
+                        size = currentTypeSize,
+                        Offset = localOffset,
+                        variableType = currentVarType
+                    };
+                    insertSymbol(entry);
+                }
+                else
+                {
+                    overallOffset += getOffset();
+                    VariableEntry entry = new VariableEntry()
+                    {
+                        lexeme = currentLexeme,
+                        depth = overallDepth,
+                        size = currentTypeSize,
+                        Offset = overallOffset,
+                        variableType = currentVarType
+                    };
+                    insertSymbol(entry);
+                }
                 IdTail();
             }
             else
@@ -500,7 +546,9 @@ namespace Compiler
             {
                 if(lookup.depth == entry.depth)
                 {
-                    Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Can't insert {entry.lexeme} at depth {entry.depth} because one already exists at that depth.");
+                    Console.WriteLine($"Error: Line {Globals.LineNumberd}: Can't insert {entry.lexeme} at depth {entry.depth} because one already exists at that depth.");
+                    Console.Write("Press any enter to continue...");
+                    Console.ReadLine();
                     Environment.Exit(-1);
                 }
                 else

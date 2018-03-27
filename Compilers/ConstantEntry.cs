@@ -1,8 +1,9 @@
-﻿/// <summary>
+﻿
+using System;
+/// <summary>
 /// Contains the abstract class for a Constant Entry. 
 /// Children: Real,Integer
 /// </summary>
-
 namespace Compiler
 {
     public class ConstantEntry : TableEntry
@@ -11,7 +12,7 @@ namespace Compiler
 
         public override void printEntry()
         {
-            throw new System.NotImplementedException();
+            Console.WriteLine($"Class: Constant Lexeme: {lexeme,-15} Token Type:{tokenType.ToString(),-5} Depth: {depth,-3} Offset: {offset,5}");
         }
     }
 }
