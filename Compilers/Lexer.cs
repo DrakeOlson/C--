@@ -395,6 +395,10 @@ namespace Compiler
             Globals.SymbolDictionary.Add(">", Globals.Symbol.relopT);
         }
 
+        /// <summary>
+        /// Peaks at the next char. 
+        /// </summary>
+        /// <returns></returns>
         public char getNextChar(){
             int tempCurrentPosition = currentPosition;
             int tempLineNumber = Globals.LineNumber;

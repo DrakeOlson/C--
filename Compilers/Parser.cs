@@ -69,15 +69,35 @@ namespace Compiler
                 Match(Globals.Symbol.idT);
                 if(lookahead != '(')
                 {
-                    VariableEntry entry = new VariableEntry()
+                    isFirstOverall = true;
+                    if(isFirstOverall && overallOffset == 0)
                     {
-                        lexeme = currentLexeme,
-                        depth = overallDepth,
-                        size = currentTypeSize,
-                        Offset = overallOffset,
-                        variableType = currentVarType
-                    };
-                    insertSymbol(entry);
+                        VariableEntry entry = new VariableEntry()
+                        {
+                            lexeme = currentLexeme,
+                            depth = overallDepth,
+                            size = currentTypeSize,
+                            Offset = 0,
+                            variableType = currentVarType
+                        };
+                        overallOffset += currentTypeSize;
+                        insertSymbol(entry);
+                        isFirstOverall = false;
+                    }
+                    else if(isFirstOverall && overallOffset >0)
+                    {
+                        VariableEntry entry = new VariableEntry()
+                        {
+                            lexeme = currentLexeme,
+                            depth = overallDepth,
+                            size = currentTypeSize,
+                            Offset = overallOffset,
+                            variableType = currentVarType
+                        };
+                        insertSymbol(entry);
+                        overallOffset += currentTypeSize;
+                    }
+                    
                 }
                 Rest();
                 //End of a function
@@ -105,8 +125,6 @@ namespace Compiler
                         };
                         Globals.Value = null;
                         symbolTable.insert(entry);
-                        overallOffset += (int)Offset.integer;
-
                     }
                     else if (Globals.ValueReal != null)
                     {
@@ -121,7 +139,7 @@ namespace Compiler
                         };
                         Globals.ValueReal = null;
                         symbolTable.insert(entry);
-                        overallOffset += (int)Offset.real;
+                        overallOffset += currentTypeSize;
                     }
                     Match(Globals.Symbol.semicolonT);
                     Prog();
@@ -151,7 +169,7 @@ namespace Compiler
                 Match(Globals.Symbol.intT);
                 if (isParameter)
                 {
-                    parameterOffset += (int)Offset.integer;
+
                     if(isFirstOverall){
                         parameterOffset = 0;
                         isFirstOverall = false;
@@ -161,7 +179,6 @@ namespace Compiler
                 }
                 else if(inFunction)
                 {
-                    localOffset += (int)Offset.integer;
                     if(isFirstOverall){
                         localOffset = 0;
                         isFirstOverall = false;
@@ -174,10 +191,6 @@ namespace Compiler
                         isFirstOverall = false;
                         overallOffset = 0;
 
-                    }
-                    else
-                    {
-                        overallOffset += (int)Offset.integer;
                     }
                 }
                 currentTypeSize = 2;
@@ -188,7 +201,7 @@ namespace Compiler
                 Match(Globals.Symbol.floatT);
                 if (isParameter)
                 {
-                    parameterOffset += (int)Offset.real;
+                    
                     numberOfLocalParameters++;
                     listOfLocalParam.AddLast(TableEntry.VariableType.floatType);
                     if (isFirstOverall)
@@ -199,7 +212,6 @@ namespace Compiler
                 }
                 else if (inFunction)
                 {
-                    localOffset += (int)Offset.real;
                     if (isFirstOverall)
                     {
                         localOffset = 0;
@@ -213,10 +225,6 @@ namespace Compiler
                         isFirstOverall = false;
                         overallOffset = 0;
 
-                    }
-                    else
-                    {
-                        overallOffset += (int)Offset.real;
                     }
                 }
                 currentTypeSize = 4;
@@ -227,7 +235,7 @@ namespace Compiler
                 Match(Globals.Symbol.charT);
                 if (isParameter)
                 {
-                    parameterOffset += (int)Offset.character;
+
                     numberOfLocalParameters++;
                     listOfLocalParam.AddLast(TableEntry.VariableType.charType);
                     if (isFirstOverall)
@@ -238,7 +246,6 @@ namespace Compiler
                 }
                 else if (inFunction)
                 {
-                    localOffset = (int)Offset.character;
                     if (isFirstOverall)
                     {
                         localOffset = 0;
@@ -252,10 +259,6 @@ namespace Compiler
                         isFirstOverall = false;
                         overallOffset = 0;
 
-                    }
-                    else
-                    {
-                        overallOffset += (int)Offset.character;
                     }
                 }
                 currentTypeSize = 1;
@@ -306,6 +309,7 @@ namespace Compiler
                     variableType = currentVarType
                 };
                 insertSymbol(entry);
+                parameterOffset += currentTypeSize;
                 ParamTrail();
             }
             else{
@@ -332,6 +336,7 @@ namespace Compiler
                     variableType = currentVarType
                 };
                 insertSymbol(entry);
+                parameterOffset += currentTypeSize;
                 ParamTrail();
             }
             else
@@ -380,9 +385,13 @@ namespace Compiler
         {
             if (Globals.Token == Globals.Symbol.voidT || Globals.Token == Globals.Symbol.intT || Globals.Token == Globals.Symbol.floatT || Globals.Token == Globals.Symbol.charT)
             {
-                isFirstOverall = true;
-                if (inFunction && isFirstOverall && localOffset != 0)
+                if(localOffset == 0)
                 {
+                    isFirstOverall = true;
+                }
+                if (inFunction && isFirstOverall == false && localOffset != 0)
+                {
+                    localOffset += currentTypeSize;
                     isFirstOverall = false;
                 }
                 Type();
@@ -497,7 +506,6 @@ namespace Compiler
                 }
                 else
                 {
-                    overallOffset += getOffset();
                     VariableEntry entry = new VariableEntry()
                     {
                         lexeme = currentLexeme,
@@ -507,6 +515,8 @@ namespace Compiler
                         variableType = currentVarType
                     };
                     insertSymbol(entry);
+
+                    overallOffset += currentTypeSize;
                 }
                 IdTail();
             }
@@ -567,6 +577,11 @@ namespace Compiler
                 }
             }
         }
+
+        /// <summary>
+        /// Gets the offset of the current type
+        /// </summary>
+        /// <returns></returns>
         private int getOffset()
         {
             if(currentVarType == TableEntry.VariableType.charType)
