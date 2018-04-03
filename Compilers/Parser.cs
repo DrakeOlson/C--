@@ -2,7 +2,7 @@
  * Author: Drake Olson
  * Class: Compiler Construction
  * Instructor: Dr. Hamer
- * Date: 1/30/18
+ * Date: 3/28/18
  * Description: The Parser will check each token to see if it fits in the C-- Grammar
  */
 
@@ -527,12 +527,162 @@ namespace Compiler
         }
 
         /// <summary>
-        /// StatList() handels the grammar rule STAT_LIST -> Lambda
+        /// StatList() handels the grammar rule STAT_LIST -> Statement ; STAT_LIST|Lambda
         /// </summary>
         private void StatList()
         {
-            //lambda
+            Statement();
+            Match(Globals.Symbol.semicolonT);
+            StatList();
         }
+        /// <summary>
+        /// Statement		-> 	AssignStat	|IOStat
+        /// </summary>
+        private void Statement()
+        {
+            if(Globals.Token == Globals.Symbol.idT)
+            {
+                AssignStat();
+            }
+            else
+            {
+                IOStat();
+            }
+        }
+        /// <summary>
+        /// Current just hold lambda. Probably going to be expanded upon later
+        /// </summary>
+        private void IOStat()
+        {
+            //Lambda
+        }
+
+        private void AssignStat()
+        {
+            TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
+            if(lookup == null)
+            {
+                Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
+                Environment.Exit(-1);
+            }
+            Match(Globals.Symbol.idT);
+            Match(Globals.Symbol.assignopT);
+            Expr();
+        }
+        /// <summary>
+        /// Grammar Rule: AssignStat		->	idt  =  Expr 
+        /// </summary>
+        private void Expr()
+        {
+            Realtion();
+        }
+        /// <summary>
+        /// Grammar Rule Realtion		->	SimpleExpr
+        /// </summary>
+        private void Realtion()
+        {
+            SimpleExpr();
+        }
+        /// <summary>
+        /// Grammar Rule SimpleExpr		->	SignOp Term MoreTerm
+        /// </summary>
+        private void SimpleExpr()
+        {
+            SignOp();
+            Term();
+            MoreTerm();
+        }
+
+        private void MoreTerm()
+        {
+            if (Globals.Lexeme == "+" || Globals.Lexeme == "-" || Globals.Lexeme == "||")
+            {
+                Match(Globals.Symbol.addopT);
+                Term();
+                MoreTerm();
+            }
+            else
+            {
+                //lambda
+            }
+        }
+
+        /// <summary>
+        /// Grammar Rule Term			->	Factor  MoreFactor
+        /// </summary>
+        private void Term()
+        {
+            Factor();
+            MoreFactor();
+        }
+        /// <summary>
+        /// Mulop Factor MoreFactor | lambda
+        /// </summary>
+        private void MoreFactor()
+        {
+            if(Globals.Lexeme == "*" || Globals.Lexeme == "/" || Globals.Lexeme == "&&")
+            {
+                Match(Globals.Symbol.mulopT);
+                Factor();
+                MoreFactor();
+            }
+            else
+            {
+                //lambda
+            }
+        }
+
+        /// <summary>
+        /// Grammar Rule ->	id | num|( Expr )
+        /// </summary>
+        private void Factor()
+        {
+            int tempInt;
+            if (Globals.Token == Globals.Symbol.idT)
+            {
+                TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
+                if (lookup == null)
+                {
+                    Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
+                    Environment.Exit(-1);
+                }
+                Match(Globals.Symbol.idT);
+            }
+            else if (Globals.Value != null)
+            {
+                Match(Globals.Symbol.intT);
+            }
+            else if(Globals.ValueReal != null)
+            {
+                Match(Globals.Symbol.floatT);
+            }
+            else if(Globals.Token == Globals.Symbol.lparenT)
+            {
+                Match(Globals.Symbol.lparenT);
+                Expr();
+                Match(Globals.Symbol.rparenT);
+            }
+        }
+
+        /// <summary>
+        /// SignOp		->	! | - | Empty
+        /// </summary>
+        private void SignOp()
+        {
+            if (Globals.Token == Globals.Symbol.negateT)
+            {
+                Match(Globals.Symbol.negateT);
+            }
+            else if (Globals.Token == Globals.Symbol.notT)
+            {
+                Match(Globals.Symbol.notT);
+            }
+            else
+            {
+                //lambda
+            }
+        }
+
         /// <summary>
         /// RetList() handels the grammar rule RET_LIST -> Lambda
         /// </summary>

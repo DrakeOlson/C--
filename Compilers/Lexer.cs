@@ -393,6 +393,8 @@ namespace Compiler
             Globals.SymbolDictionary.Add("<=", Globals.Symbol.relopT);
             Globals.SymbolDictionary.Add(">=", Globals.Symbol.relopT);
             Globals.SymbolDictionary.Add(">", Globals.Symbol.relopT);
+            Globals.SymbolDictionary.Add("-", Globals.Symbol.negateT);
+            Globals.SymbolDictionary.Add("!", Globals.Symbol.notT);
         }
 
         /// <summary>
