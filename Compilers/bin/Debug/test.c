@@ -13,4 +13,8 @@ int test(int e,float f,char g){
 	int h,i,j;
 	float k;
 	const x = 2.4;
+	x = h;
+	x = -h;
+	x = i * (((h)));
+	x = h + i + j;
 }

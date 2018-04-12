@@ -369,6 +369,7 @@ namespace Compiler
             Globals.SymbolDictionary.Add("continue", Globals.Symbol.continueT);
             Globals.SymbolDictionary.Add("void", Globals.Symbol.voidT);
             Globals.SymbolDictionary.Add("const", Globals.Symbol.constT);
+            Globals.SymbolDictionary.Add("return", Globals.Symbol.returnT);
             Globals.SymbolDictionary.Add("(", Globals.Symbol.lparenT);
             Globals.SymbolDictionary.Add(")", Globals.Symbol.rparenT);
             Globals.SymbolDictionary.Add("{", Globals.Symbol.lbraceT);
@@ -393,7 +394,6 @@ namespace Compiler
             Globals.SymbolDictionary.Add("<=", Globals.Symbol.relopT);
             Globals.SymbolDictionary.Add(">=", Globals.Symbol.relopT);
             Globals.SymbolDictionary.Add(">", Globals.Symbol.relopT);
-            Globals.SymbolDictionary.Add("-", Globals.Symbol.negateT);
             Globals.SymbolDictionary.Add("!", Globals.Symbol.notT);
         }
 

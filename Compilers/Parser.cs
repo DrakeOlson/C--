@@ -531,9 +531,16 @@ namespace Compiler
         /// </summary>
         private void StatList()
         {
-            Statement();
-            Match(Globals.Symbol.semicolonT);
-            StatList();
+            if (Globals.Token == Globals.Symbol.idT)
+            {
+                Statement();
+                Match(Globals.Symbol.semicolonT);
+                StatList();
+            }
+            else
+            {
+                //Lambda
+            }
         }
         /// <summary>
         /// Statement		-> 	AssignStat	|IOStat
@@ -556,7 +563,9 @@ namespace Compiler
         {
             //Lambda
         }
-
+        /// <summary>
+        /// Assignstat -> idt = Expr | idt = FuncCall
+        /// </summary>
         private void AssignStat()
         {
             TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
@@ -567,8 +576,81 @@ namespace Compiler
             }
             Match(Globals.Symbol.idT);
             Match(Globals.Symbol.assignopT);
-            Expr();
+            lookup = symbolTable.lookup(Globals.Lexeme);
+            if(lookup != null && (lookup is VariableEntry || lookup is ConstantEntry))
+            {
+                Expr();
+            }
+            else if(lookup != null && lookup is FunctionEntry)
+            {
+                FuncCall();
+            }
+            
         }
+
+        private void FuncCall()
+        {
+            Match(Globals.Symbol.idT);
+            Match(Globals.Symbol.lparenT);
+            Params();
+            Match(Globals.Symbol.rparenT);
+        }
+
+        private void Params()
+        {
+            if(Globals.Token == Globals.Symbol.idT)
+            {
+                Match(Globals.Symbol.idT);
+                ParamsTail();
+            }
+            else if(Globals.Token == Globals.Symbol.floatT || Globals.Token == Globals.Symbol.intT)
+            {
+                if(Globals.Token == Globals.Symbol.floatT)
+                {
+                    Match(Globals.Symbol.floatT);
+                }
+                else
+                {
+                    Match(Globals.Symbol.intT);
+                }
+                ParamsTail();
+            }
+            else
+            {
+                //Lambda
+            }
+        }
+
+        private void ParamsTail()
+        {
+            if(Globals.Token == Globals.Symbol.commaT)
+            {
+                Match(Globals.Symbol.commaT);
+                if (Globals.Token == Globals.Symbol.idT)
+                {
+                    Match(Globals.Symbol.idT);
+                    ParamsTail();
+                }
+                else if (Globals.Token == Globals.Symbol.floatT || Globals.Token == Globals.Symbol.intT)
+                {
+                    if (Globals.Token == Globals.Symbol.floatT)
+                    {
+                        Match(Globals.Symbol.floatT);
+                    }
+                    else
+                    {
+                        Match(Globals.Symbol.intT);
+                    }
+                    ParamsTail();
+                }
+            }
+            else
+            {
+                //lambda
+            }
+
+        }
+
         /// <summary>
         /// Grammar Rule: AssignStat		->	idt  =  Expr 
         /// </summary>
@@ -669,9 +751,9 @@ namespace Compiler
         /// </summary>
         private void SignOp()
         {
-            if (Globals.Token == Globals.Symbol.negateT)
+            if (Globals.Lexeme == "-")
             {
-                Match(Globals.Symbol.negateT);
+                Match(Globals.Symbol.addopT);
             }
             else if (Globals.Token == Globals.Symbol.notT)
             {
@@ -688,7 +770,9 @@ namespace Compiler
         /// </summary>
         private void RetList()
         {
-            //lambda
+            Match(Globals.Symbol.returnT);
+            Expr();
+            Match(Globals.Symbol.semicolonT);
         }
         /// <summary>
         /// Match() Matches the current token to which is expected in the grammar
@@ -701,7 +785,7 @@ namespace Compiler
                 l.GetNextToken();
             }
             else{
-                Console.WriteLine($"Error: Line {Globals.LineNumber+1}: Expecting {token.ToString()}. Received {Globals.Token.ToString()}");
+                Console.WriteLine($"Error: Line {Globals.LineNumber}: Expecting {token.ToString()}. Received {Globals.Token.ToString()}");
                 Environment.Exit(-1);
             }
         }
