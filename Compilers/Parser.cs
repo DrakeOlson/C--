@@ -31,6 +31,9 @@ namespace Compiler
         private TableEntry.VariableType returnType;
         private int numberOfLocalParameters = 0;
         private LinkedList<FunctionEntry.VariableType> listOfLocalParam = new LinkedList<TableEntry.VariableType>();
+        private Stack<TableEntry> actualParameters = new Stack<TableEntry>();
+        private int paramBasePointerCounter = 0;
+        private int localBasePointerCounter = 0;
         /// <summary>
         /// Default Constructor to create a Parser Object
         /// </summary>
@@ -278,6 +281,8 @@ namespace Compiler
                 overallDepth++;
                 ParameterList();
                 Match(Globals.Symbol.rparenT);
+                assignParamBPOffsets();
+                paramBasePointerCounter = 0;
                 parameterOffset = 0;
                 Compound();
             }
@@ -288,6 +293,21 @@ namespace Compiler
                 Prog();
             }
         }
+
+
+        /// <summary>
+        /// Assigns the BP offset of parameters in a function
+        /// </summary>
+        private void assignParamBPOffsets()
+        {
+            for (int i = 0; i < actualParameters.Count; i++)
+            {
+                VariableEntry lookup = symbolTable.lookup(actualParameters.Pop().lexeme) as VariableEntry;
+                lookup.BPOffset = paramBasePointerCounter;
+                paramBasePointerCounter-=2;
+            }
+        }
+
         /// <summary>
         /// ParameterList() handels the rule PARAMLIST	->	TYPE idt PARAMTAIL | lambda
         /// </summary>
@@ -308,6 +328,8 @@ namespace Compiler
                     size = currentTypeSize,
                     variableType = currentVarType
                 };
+                actualParameters.Push(entry);
+                paramBasePointerCounter += 2;
                 insertSymbol(entry);
                 parameterOffset += currentTypeSize;
                 ParamTrail();
@@ -335,6 +357,8 @@ namespace Compiler
                     size = currentTypeSize,
                     variableType = currentVarType
                 };
+                actualParameters.Push(entry);
+                paramBasePointerCounter += 2;
                 insertSymbol(entry);
                 parameterOffset += currentTypeSize;
                 ParamTrail();
@@ -468,8 +492,10 @@ namespace Compiler
                 depth = overallDepth,
                 Offset = localOffset,
                 size = currentTypeSize,
-                variableType = currentVarType
+                variableType = currentVarType,
+                BPOffset = -localBasePointerCounter
             };
+            localBasePointerCounter += 2;
             insertSymbol(entry);
             isFirstOverall = false;
             Match(Globals.Symbol.idT);
@@ -500,9 +526,11 @@ namespace Compiler
                         depth = overallDepth,
                         size = currentTypeSize,
                         Offset = localOffset,
-                        variableType = currentVarType
+                        variableType = currentVarType,
+                        BPOffset = -localBasePointerCounter
                     };
                     insertSymbol(entry);
+                    localBasePointerCounter += 2;
                 }
                 else
                 {
@@ -512,10 +540,9 @@ namespace Compiler
                         depth = overallDepth,
                         size = currentTypeSize,
                         Offset = overallOffset,
-                        variableType = currentVarType
+                        variableType = currentVarType,
                     };
                     insertSymbol(entry);
-
                     overallOffset += currentTypeSize;
                 }
                 IdTail();
@@ -811,6 +838,7 @@ namespace Compiler
                 }
             }
         }
+
 
         /// <summary>
         /// Gets the offset of the current type

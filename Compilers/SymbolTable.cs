@@ -110,6 +110,7 @@ namespace Compiler
 
             return null;
         }
+       
         /// <summary>
         /// Given a depth delete all symbols in the symbol table with the given depth
         /// </summary>

@@ -15,6 +15,7 @@ namespace Compiler
         public VariableType variableType;
         public int Offset;
         public int size;
+        public int BPOffset;
 
         public override void printEntry()
         {
