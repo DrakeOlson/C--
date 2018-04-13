@@ -8,6 +8,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 
 namespace Compiler
 {
@@ -34,6 +36,10 @@ namespace Compiler
         private Stack<TableEntry> actualParameters = new Stack<TableEntry>();
         private int paramBasePointerCounter = 0;
         private int localBasePointerCounter = 0;
+        private StringBuilder outputtedString = new StringBuilder();
+        private int tempCounter = 1;
+        private const string ax = "_AX";
+        private StreamWriter output = null;
         /// <summary>
         /// Default Constructor to create a Parser Object
         /// </summary>
@@ -41,6 +47,8 @@ namespace Compiler
         public Parser(string fileName)
         {
             l = new Lexer(fileName);
+            string outputtedFileName = fileName.Remove(fileName.IndexOf('.')) + ".tac";
+            output = new StreamWriter(outputtedFileName);
             l.GetNextToken();
         }
 
@@ -601,7 +609,9 @@ namespace Compiler
                 Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
                 Environment.Exit(-1);
             }
+            outputtedString.Append(getNextTemp());
             Match(Globals.Symbol.idT);
+            outputtedString.Append("=");
             Match(Globals.Symbol.assignopT);
             lookup = symbolTable.lookup(Globals.Lexeme);
             if(lookup != null && (lookup is VariableEntry || lookup is ConstantEntry))
@@ -617,16 +627,20 @@ namespace Compiler
 
         private void FuncCall()
         {
+            string functionName = Globals.Lexeme;
             Match(Globals.Symbol.idT);
             Match(Globals.Symbol.lparenT);
             Params();
+            output.WriteLine($"Call {Globals.Lexeme}");
             Match(Globals.Symbol.rparenT);
         }
 
         private void Params()
         {
+            Stack<object> passedParams = new Stack<object>();
             if(Globals.Token == Globals.Symbol.idT)
             {
+                //TODO push params to a stack than pop and right to file
                 Match(Globals.Symbol.idT);
                 ParamsTail();
             }
@@ -746,23 +760,35 @@ namespace Compiler
         /// </summary>
         private void Factor()
         {
-            int tempInt;
+            TableEntry lookup;
             if (Globals.Token == Globals.Symbol.idT)
             {
-                TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
+                lookup = symbolTable.lookup(Globals.Lexeme);
                 if (lookup == null)
                 {
                     Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
                     Environment.Exit(-1);
                 }
+                if(lookup is VariableEntry)
+                {
+                    VariableEntry temp = lookup as VariableEntry;
+                    outputtedString.Append(temp.getBPValue());
+                }
+                else if(lookup is ConstantEntry)
+                {
+                    //TODO check if this is needed for constants
+                }
+                
                 Match(Globals.Symbol.idT);
             }
             else if (Globals.Value != null)
             {
+                outputtedString.Append(Globals.Value);
                 Match(Globals.Symbol.intT);
             }
             else if(Globals.ValueReal != null)
             {
+                outputtedString.Append(Globals.ValueReal);
                 Match(Globals.Symbol.floatT);
             }
             else if(Globals.Token == Globals.Symbol.lparenT)
@@ -839,6 +865,12 @@ namespace Compiler
             }
         }
 
+        private string getNextTemp()
+        {
+            string returned = "_t" + tempCounter;
+            tempCounter++;
+            return returned;
+        }
 
         /// <summary>
         /// Gets the offset of the current type
