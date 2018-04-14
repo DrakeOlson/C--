@@ -34,6 +34,7 @@ namespace Compiler
         private int numberOfLocalParameters = 0;
         private LinkedList<FunctionEntry.VariableType> listOfLocalParam = new LinkedList<TableEntry.VariableType>();
         private Stack<TableEntry> actualParameters = new Stack<TableEntry>();
+        private Stack<object> passedParams = new Stack<object>();
         private int paramBasePointerCounter = 0;
         private int localBasePointerCounter = 0;
         private StringBuilder outputtedString = new StringBuilder();
@@ -621,6 +622,9 @@ namespace Compiler
             else if(lookup != null && lookup is FunctionEntry)
             {
                 FuncCall();
+                outputtedString.Append(ax);
+                output.WriteLine(outputtedString);
+                outputtedString.Clear();
             }
             
         }
@@ -631,16 +635,20 @@ namespace Compiler
             Match(Globals.Symbol.idT);
             Match(Globals.Symbol.lparenT);
             Params();
-            output.WriteLine($"Call {Globals.Lexeme}");
+            foreach(var p in passedParams)
+            {
+                output.WriteLine($"push {passedParams.Pop()}");
+            }
+            output.WriteLine($"Call {functionName}");
             Match(Globals.Symbol.rparenT);
         }
 
         private void Params()
         {
-            Stack<object> passedParams = new Stack<object>();
+            
             if(Globals.Token == Globals.Symbol.idT)
             {
-                //TODO push params to a stack than pop and right to file
+                passedParams.Push(Globals.Lexeme);
                 Match(Globals.Symbol.idT);
                 ParamsTail();
             }
@@ -648,10 +656,12 @@ namespace Compiler
             {
                 if(Globals.Token == Globals.Symbol.floatT)
                 {
+                    passedParams.Push(Globals.ValueReal);
                     Match(Globals.Symbol.floatT);
                 }
                 else
                 {
+                    passedParams.Push(Globals.Value);
                     Match(Globals.Symbol.intT);
                 }
                 ParamsTail();
@@ -669,6 +679,7 @@ namespace Compiler
                 Match(Globals.Symbol.commaT);
                 if (Globals.Token == Globals.Symbol.idT)
                 {
+                    passedParams.Push(Globals.Lexeme);
                     Match(Globals.Symbol.idT);
                     ParamsTail();
                 }
@@ -676,10 +687,12 @@ namespace Compiler
                 {
                     if (Globals.Token == Globals.Symbol.floatT)
                     {
+                        passedParams.Push(Globals.ValueReal);
                         Match(Globals.Symbol.floatT);
                     }
                     else
                     {
+                        passedParams.Push(Globals.Value);
                         Match(Globals.Symbol.intT);
                     }
                     ParamsTail();
@@ -806,6 +819,7 @@ namespace Compiler
         {
             if (Globals.Lexeme == "-")
             {
+                outputtedString.Append(getNextTemp() + "=" + Globals.Lexeme);
                 Match(Globals.Symbol.addopT);
             }
             else if (Globals.Token == Globals.Symbol.notT)
@@ -869,6 +883,7 @@ namespace Compiler
         {
             string returned = "_t" + tempCounter;
             tempCounter++;
+            localBasePointerCounter += 2;
             return returned;
         }
 
