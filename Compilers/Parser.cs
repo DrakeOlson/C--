@@ -648,9 +648,41 @@ namespace Compiler
             
             if(Globals.Token == Globals.Symbol.idT)
             {
-                passedParams.Push(Globals.Lexeme);
-                Match(Globals.Symbol.idT);
-                ParamsTail();
+                TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
+                if(lookup != null)
+                {
+                    if (lookup.depth == 1 || lookup is ConstantEntry)
+                    {
+                        if (lookup is IntegerConstantEntry)
+                        {
+                            IntegerConstantEntry entry = lookup as IntegerConstantEntry;
+                            passedParams.Push(entry.value);
+                        }
+                        else if (lookup is RealConstantEntry)
+                        {
+                            RealConstantEntry entry = lookup as RealConstantEntry;
+                            passedParams.Push(entry.value);
+                        }
+                        else if (lookup is VariableEntry)
+                        {
+                            passedParams.Push(lookup.lexeme);
+                        }
+
+                    }
+                    else
+                    {
+                        VariableEntry entry = lookup as VariableEntry;
+                        passedParams.Push(entry.getBPValue());
+                    }
+
+                    Match(Globals.Symbol.idT);
+                    ParamsTail();
+                }
+                else
+                {
+                    Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
+                    Environment.Exit(-1);
+                }
             }
             else if(Globals.Token == Globals.Symbol.floatT || Globals.Token == Globals.Symbol.intT)
             {
@@ -672,6 +704,7 @@ namespace Compiler
             }
         }
 
+
         private void ParamsTail()
         {
             if(Globals.Token == Globals.Symbol.commaT)
@@ -679,9 +712,40 @@ namespace Compiler
                 Match(Globals.Symbol.commaT);
                 if (Globals.Token == Globals.Symbol.idT)
                 {
-                    passedParams.Push(Globals.Lexeme);
-                    Match(Globals.Symbol.idT);
-                    ParamsTail();
+                    TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
+                    if(lookup != null)
+                    {
+                        if (lookup.depth == 1 || lookup is ConstantEntry)
+                        {
+                            if (lookup is IntegerConstantEntry)
+                            {
+                                IntegerConstantEntry entry = lookup as IntegerConstantEntry;
+                                passedParams.Push(entry.value);
+                            }
+                            else if (lookup is RealConstantEntry)
+                            {
+                                RealConstantEntry entry = lookup as RealConstantEntry;
+                                passedParams.Push(entry.value);
+                            }
+                            else if (lookup is VariableEntry)
+                            {
+                                passedParams.Push(lookup.lexeme);
+                            }
+
+                        }
+                        else
+                        {
+                            VariableEntry entry = lookup as VariableEntry;
+                            passedParams.Push(entry.getBPValue());
+                        }
+                        Match(Globals.Symbol.idT);
+                        ParamsTail();
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
+                        Environment.Exit(-1);
+                    }
                 }
                 else if (Globals.Token == Globals.Symbol.floatT || Globals.Token == Globals.Symbol.intT)
                 {
