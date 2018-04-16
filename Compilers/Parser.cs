@@ -36,7 +36,7 @@ namespace Compiler
         private LinkedList<FunctionEntry.VariableType> listOfLocalParam = new LinkedList<TableEntry.VariableType>();
         private Stack<TableEntry> actualParameters = new Stack<TableEntry>();
         private Stack<object> passedParams = new Stack<object>();
-        private int paramBasePointerCounter = 2;
+        private int paramBasePointerCounter = 4;
         private int localBasePointerCounter = 2;
         private StringBuilder outputtedString = new StringBuilder();
         private int tempCounter = 1;
@@ -49,6 +49,7 @@ namespace Compiler
         private bool inReturn = false;
         private bool singleRightHand = true;
         private string functionName;
+        private int globalOffset = 2;
 
         /// <summary>
         /// Default Constructor to create a Parser Object
@@ -98,8 +99,10 @@ namespace Compiler
                             depth = overallDepth,
                             size = currentTypeSize,
                             Offset = 0,
-                            variableType = currentVarType
+                            variableType = currentVarType,
+                            BPOffset = -globalOffset
                         };
+                        globalOffset +=2;
                         overallOffset += currentTypeSize;
                         insertSymbol(entry);
                         isFirstOverall = false;
@@ -112,11 +115,14 @@ namespace Compiler
                             depth = overallDepth,
                             size = currentTypeSize,
                             Offset = overallOffset,
-                            variableType = currentVarType
+                            variableType = currentVarType,
+                            BPOffset = -globalOffset
                         };
+                        globalOffset += 2;
                         insertSymbol(entry);
                         overallOffset += currentTypeSize;
                     }
+
                     
                 }
                 Rest();
@@ -508,6 +514,17 @@ namespace Compiler
             {
                 localOffset += getOffset();
             }
+            int templocal;
+            if(inFunction)
+            {
+                templocal = -localBasePointerCounter;
+                localBasePointerCounter += 2;
+            }
+            else
+            {
+                templocal = -globalOffset;
+                globalOffset += 2;
+            }
             VariableEntry entry = new VariableEntry()
             {
                 lexeme = currentLexeme,
@@ -515,9 +532,8 @@ namespace Compiler
                 Offset = localOffset,
                 size = currentTypeSize,
                 variableType = currentVarType,
-                BPOffset = -localBasePointerCounter
+                BPOffset = templocal
             };
-            localBasePointerCounter += 2;
             insertSymbol(entry);
             isFirstOverall = false;
             Match(Globals.Symbol.idT);
@@ -542,6 +558,9 @@ namespace Compiler
                     {
                         localOffset += getOffset();
                     }
+
+                    int templocal = -localBasePointerCounter;
+                    localBasePointerCounter += 2;
                     VariableEntry entry = new VariableEntry()
                     {
                         lexeme = currentLexeme,
@@ -556,6 +575,8 @@ namespace Compiler
                 }
                 else
                 {
+                    int templocal = -globalOffset;
+                    globalOffset += 2;
                     VariableEntry entry = new VariableEntry()
                     {
                         lexeme = currentLexeme,
@@ -563,6 +584,7 @@ namespace Compiler
                         size = currentTypeSize,
                         Offset = overallOffset,
                         variableType = currentVarType,
+                        BPOffset = templocal
                     };
                     insertSymbol(entry);
                     overallOffset += currentTypeSize;
@@ -597,10 +619,10 @@ namespace Compiler
                 else if (lookup is VariableEntry)
                 {
                     VariableEntry temp = lookup as VariableEntry;
-                    if (File.ReadLines(outputtedFileName).Last() != $"{temp.getBPValue()}={getCurrentTemp()}" && !singleRightHand)
+                    if (File.ReadLines(outputtedFileName).Last() != $"{temp.getBPValue(overallDepth)}={getCurrentTemp()}" && !singleRightHand)
                     {
                         singleRightHand = true;
-                        WriteToFile($"{temp.getBPValue()}={getCurrentTemp()}");
+                        WriteToFile($"{temp.getBPValue(overallDepth)}={getCurrentTemp()}");
                     }
                 }
                 //Possible have to print the contents remainning before clearing
@@ -651,9 +673,9 @@ namespace Compiler
                 Environment.Exit(-1);
             }
             VariableEntry temp = lookup as VariableEntry;
-            outputtedString.Append(temp.getBPValue());
+            outputtedString.Append(temp.getBPValue(overallDepth));
             finalLeftHandLex = Globals.Lexeme;
-            finalLeftHand = temp.getBPValue();
+            finalLeftHand = temp.getBPValue(overallDepth);
             Match(Globals.Symbol.idT);
             outputtedString.Append("=");
             Match(Globals.Symbol.assignopT);
@@ -721,7 +743,7 @@ namespace Compiler
                     else
                     {
                         VariableEntry entry = lookup as VariableEntry;
-                        passedParams.Push(entry.getBPValue());
+                        passedParams.Push(entry.getBPValue(overallDepth));
                     }
 
                     Match(Globals.Symbol.idT);
@@ -785,7 +807,7 @@ namespace Compiler
                         else
                         {
                             VariableEntry entry = lookup as VariableEntry;
-                            passedParams.Push(entry.getBPValue());
+                            passedParams.Push(entry.getBPValue(overallDepth));
                         }
                         Match(Globals.Symbol.idT);
                         ParamsTail();
@@ -938,7 +960,7 @@ namespace Compiler
                 if(lookup is VariableEntry)
                 {
                     VariableEntry temp = lookup as VariableEntry;
-                    outputtedString.Append(temp.getBPValue());
+                    outputtedString.Append(temp.getBPValue(overallDepth));
                     rightHandSide++;
                     if (unary)
                     {
@@ -999,7 +1021,7 @@ namespace Compiler
                     WriteToFile(outputtedString.ToString());
                     outputtedString.Clear();
                     VariableEntry entry = symbolTable.lookup(finalLeftHandLex) as VariableEntry;
-                    outputtedString.Append($"{entry.getBPValue()}={getCurrentTemp()}");
+                    outputtedString.Append($"{entry.getBPValue(overallDepth)}={getCurrentTemp()}");
                     rightHandSide = 1;
                 }
                 Match(Globals.Symbol.intT);

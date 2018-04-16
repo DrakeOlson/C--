@@ -22,7 +22,7 @@ namespace Compiler
             Console.WriteLine($"Class: Variable Lexeme: {lexeme,-15} Token Type:{tokenType.ToString(),-10} Depth: {depth,-3} Variable Type: {variableType.ToString(),5} Offset: {Offset,-3} Size Of: {size,-3}");
 
         }
-        public string getBPValue()
+        public string getBPValue(int currentDepth)
         {
             if(depth == 0)
             {
