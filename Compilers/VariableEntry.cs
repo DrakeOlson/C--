@@ -24,13 +24,20 @@ namespace Compiler
         }
         public string getBPValue()
         {
-            if(BPOffset > 0)
+            if(depth == 0)
             {
-                return $"_BP+{BPOffset}";
+                return lexeme;
             }
             else
             {
-                return $"_BP{BPOffset}";
+                if (BPOffset > 0)
+                {
+                    return $"_BP+{BPOffset}";
+                }
+                else
+                {
+                    return $"_BP{BPOffset}";
+                }
             }
         }
     }

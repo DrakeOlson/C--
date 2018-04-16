@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace Compiler
@@ -35,12 +36,20 @@ namespace Compiler
         private LinkedList<FunctionEntry.VariableType> listOfLocalParam = new LinkedList<TableEntry.VariableType>();
         private Stack<TableEntry> actualParameters = new Stack<TableEntry>();
         private Stack<object> passedParams = new Stack<object>();
-        private int paramBasePointerCounter = 0;
-        private int localBasePointerCounter = 0;
+        private int paramBasePointerCounter = 2;
+        private int localBasePointerCounter = 2;
         private StringBuilder outputtedString = new StringBuilder();
         private int tempCounter = 1;
         private const string ax = "_AX";
-        private StreamWriter output = null;
+        private bool unary = false;
+        private int rightHandSide = 0;
+        private string outputtedFileName;
+        private string finalLeftHand;
+        private string finalLeftHandLex;
+        private bool inReturn = false;
+        private bool singleRightHand = true;
+        private string functionName;
+
         /// <summary>
         /// Default Constructor to create a Parser Object
         /// </summary>
@@ -48,8 +57,7 @@ namespace Compiler
         public Parser(string fileName)
         {
             l = new Lexer(fileName);
-            string outputtedFileName = fileName.Remove(fileName.IndexOf('.')) + ".tac";
-            output = new StreamWriter(outputtedFileName);
+            outputtedFileName = fileName.Remove(fileName.IndexOf('.')) + ".tac";
             l.GetNextToken();
         }
 
@@ -285,6 +293,7 @@ namespace Compiler
             if(Globals.Token == Globals.Symbol.lparenT)
             {
                 //functions
+                WriteToFile($"Proc {functionLexeme}");
                 returnType = currentVarType;
                 Match(Globals.Symbol.lparenT);
                 overallDepth++;
@@ -389,6 +398,10 @@ namespace Compiler
             StatList();
             RetList();
             Match(Globals.Symbol.rbraceT);
+            WriteToFile($"Endp {functionLexeme}");
+            outputtedString.Clear();
+            localBasePointerCounter = 2;
+            paramBasePointerCounter = 2;
             FunctionEntry entry = new FunctionEntry()
             {
                 lexeme = functionLexeme,
@@ -571,6 +584,28 @@ namespace Compiler
             {
                 Statement();
                 Match(Globals.Symbol.semicolonT);
+                if(outputtedString.ToString() != String.Empty)
+                {
+                    WriteToFile(outputtedString.ToString());
+                    outputtedString.Clear();
+                }
+                TableEntry lookup = symbolTable.lookup(finalLeftHandLex);
+                if (lookup is ConstantEntry)
+                {
+                    WriteToFile($"{finalLeftHand} = {getCurrentTemp()}");
+                }
+                else if (lookup is VariableEntry)
+                {
+                    VariableEntry temp = lookup as VariableEntry;
+                    if (File.ReadLines(outputtedFileName).Last() != $"{temp.getBPValue()}={getCurrentTemp()}" && !singleRightHand)
+                    {
+                        singleRightHand = true;
+                        WriteToFile($"{temp.getBPValue()}={getCurrentTemp()}");
+                    }
+                }
+                //Possible have to print the contents remainning before clearing
+                outputtedString.Clear();
+                
                 StatList();
             }
             else
@@ -610,21 +645,35 @@ namespace Compiler
                 Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
                 Environment.Exit(-1);
             }
-            outputtedString.Append(getNextTemp());
+            if(lookup  is ConstantEntry)
+            {
+                Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} is a constant and can't be reassigned.");
+                Environment.Exit(-1);
+            }
+            VariableEntry temp = lookup as VariableEntry;
+            outputtedString.Append(temp.getBPValue());
+            finalLeftHandLex = Globals.Lexeme;
+            finalLeftHand = temp.getBPValue();
             Match(Globals.Symbol.idT);
             outputtedString.Append("=");
             Match(Globals.Symbol.assignopT);
             lookup = symbolTable.lookup(Globals.Lexeme);
-            if(lookup != null && (lookup is VariableEntry || lookup is ConstantEntry))
+            if ((lookup != null && (lookup is VariableEntry || lookup is ConstantEntry)) || (lookup == null && (Globals.Token == Globals.Symbol.floatT || Globals.Token == Globals.Symbol.intT)))
             {
                 Expr();
             }
-            else if(lookup != null && lookup is FunctionEntry)
+            else if (lookup != null && lookup is FunctionEntry)
             {
                 FuncCall();
                 outputtedString.Append(ax);
-                output.WriteLine(outputtedString);
+                WriteToFile(outputtedString.ToString());
+                WriteToFile($"{finalLeftHand} = {ax}");
                 outputtedString.Clear();
+            }
+            else if (lookup == null)
+            {
+                Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
+                Environment.Exit(-1);
             }
             
         }
@@ -637,9 +686,9 @@ namespace Compiler
             Params();
             foreach(var p in passedParams)
             {
-                output.WriteLine($"push {passedParams.Pop()}");
+                WriteToFile($"push {passedParams.Pop()}");
             }
-            output.WriteLine($"Call {functionName}");
+            WriteToFile($"Call {functionName}");
             Match(Globals.Symbol.rparenT);
         }
 
@@ -790,6 +839,7 @@ namespace Compiler
         {
             SignOp();
             Term();
+
             MoreTerm();
         }
 
@@ -797,12 +847,48 @@ namespace Compiler
         {
             if (Globals.Lexeme == "+" || Globals.Lexeme == "-" || Globals.Lexeme == "||")
             {
+                singleRightHand = false;
+                if(rightHandSide >= 2)
+                {
+                    if(Globals.Token != Globals.Symbol.semicolonT)
+                    {
+                        if(outputtedString.ToString().StartsWith("_t") == false)
+                        {
+                            outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
+                            outputtedString.Insert(0, getNextTemp());
+                        }
+                    }
+                    WriteToFile(outputtedString.ToString());
+                    outputtedString.Clear();
+                    outputtedString.Append($"{getNextTemp()}={getPrevTemp()}{Globals.Lexeme}");
+                    rightHandSide = 1;
+                }
+                else
+                {
+                    outputtedString.Append(Globals.Lexeme);
+                }
+
                 Match(Globals.Symbol.addopT);
                 Term();
                 MoreTerm();
             }
             else
             {
+                if (rightHandSide >= 2 || Globals.Token == Globals.Symbol.semicolonT)
+                {
+                    if(outputtedString.ToString() != String.Empty && !inReturn)
+                    {
+                        if (outputtedString.ToString().StartsWith("_t") == false && rightHandSide >=2)
+                        {
+                            outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
+                            outputtedString.Insert(0, getNextTemp());
+                        }
+                        WriteToFile(outputtedString.ToString());
+                        outputtedString.Clear();
+                        
+                    }
+                    rightHandSide = 0;
+                }
                 //lambda
             }
         }
@@ -822,12 +908,15 @@ namespace Compiler
         {
             if(Globals.Lexeme == "*" || Globals.Lexeme == "/" || Globals.Lexeme == "&&")
             {
+                singleRightHand = false;
+                WriteToFile(outputtedString.ToString());
                 Match(Globals.Symbol.mulopT);
                 Factor();
                 MoreFactor();
             }
             else
             {
+                
                 //lambda
             }
         }
@@ -850,10 +939,48 @@ namespace Compiler
                 {
                     VariableEntry temp = lookup as VariableEntry;
                     outputtedString.Append(temp.getBPValue());
+                    rightHandSide++;
+                    if (unary)
+                    {
+                        WriteToFile(outputtedString.ToString());
+                        outputtedString.Clear();
+                        outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
+                        unary = false;
+                        rightHandSide = 0;
+                    }
                 }
                 else if(lookup is ConstantEntry)
                 {
-                    //TODO check if this is needed for constants
+                    
+                    if(lookup is RealConstantEntry)
+                    {
+                        RealConstantEntry entry = lookup as RealConstantEntry;
+                        outputtedString.Append(entry.value);
+                        rightHandSide++;
+                        if (unary)
+                        {
+                            WriteToFile(outputtedString.ToString());
+                            outputtedString.Clear();
+                            outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
+                            unary = false;
+                            rightHandSide = 0;
+                        }
+                    }
+                    else
+                    {
+                        IntegerConstantEntry entry = lookup as IntegerConstantEntry;
+                        outputtedString.Append(entry.value);
+                        rightHandSide++;
+                        if (unary)
+                        {
+                            WriteToFile(outputtedString.ToString());
+                            outputtedString.Clear();
+                            outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
+                            unary = false;
+                            rightHandSide = 0;
+                        }
+                    }
+                    
                 }
                 
                 Match(Globals.Symbol.idT);
@@ -861,12 +988,51 @@ namespace Compiler
             else if (Globals.Value != null)
             {
                 outputtedString.Append(Globals.Value);
+                rightHandSide++;
+                if (rightHandSide >= 2)
+                {
+                    if (outputtedString.ToString().StartsWith("_t") == false)
+                    {
+                        outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
+                        outputtedString.Insert(0, getNextTemp());
+                    }
+                    WriteToFile(outputtedString.ToString());
+                    outputtedString.Clear();
+                    VariableEntry entry = symbolTable.lookup(finalLeftHandLex) as VariableEntry;
+                    outputtedString.Append($"{entry.getBPValue()}={getCurrentTemp()}");
+                    rightHandSide = 1;
+                }
                 Match(Globals.Symbol.intT);
+                if (Globals.Lexeme == ";" && !inReturn)
+                {
+                    WriteToFile(outputtedString.ToString());
+                    outputtedString.Clear();
+                }
+                else if (inReturn)
+                {
+                    finalLeftHand = ax;
+                }
             }
             else if(Globals.ValueReal != null)
             {
                 outputtedString.Append(Globals.ValueReal);
+                rightHandSide++;
+                if (rightHandSide >= 2)
+                {
+                    WriteToFile(outputtedString.ToString());
+                    outputtedString.Clear();
+                    outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
+                    rightHandSide = 1;
+                }
                 Match(Globals.Symbol.floatT);
+                if (Globals.Lexeme == ";" && !inReturn)
+                {
+                    outputtedString.Clear();
+                }
+                else if (inReturn)
+                {
+                    finalLeftHand = ax;
+                }
             }
             else if(Globals.Token == Globals.Symbol.lparenT)
             {
@@ -883,6 +1049,7 @@ namespace Compiler
         {
             if (Globals.Lexeme == "-")
             {
+                unary = true;
                 outputtedString.Append(getNextTemp() + "=" + Globals.Lexeme);
                 Match(Globals.Symbol.addopT);
             }
@@ -901,8 +1068,10 @@ namespace Compiler
         /// </summary>
         private void RetList()
         {
+            inReturn = true;
             Match(Globals.Symbol.returnT);
             Expr();
+            WriteToFile($"{finalLeftHand} = {outputtedString.ToString()}");
             Match(Globals.Symbol.semicolonT);
         }
         /// <summary>
@@ -945,10 +1114,38 @@ namespace Compiler
 
         private string getNextTemp()
         {
-            string returned = "_t" + tempCounter;
-            tempCounter++;
+            string returned = "_BP-" + localBasePointerCounter;
             localBasePointerCounter += 2;
             return returned;
+        }
+
+        private string getPrevTemp()
+        {
+            int previous = tempCounter - 2;
+            if(previous == 0)
+            {
+                previous = 1;
+            }
+            string returned = "_BP-" + previous;
+            return returned;
+        }
+        private string getCurrentTemp()
+        {
+            int previous = localBasePointerCounter - 2;
+            if (previous == 0)
+            {
+                previous = 1;
+            }
+            string returned = "_BP-" + previous;
+            return returned;
+        }
+
+        private void WriteToFile(string line)
+        {
+            using(StreamWriter output = new StreamWriter(outputtedFileName, true))
+            {
+                output.WriteLine(line);
+            }
         }
 
         /// <summary>
