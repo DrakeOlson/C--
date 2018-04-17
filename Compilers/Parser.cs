@@ -985,12 +985,32 @@ namespace Compiler
         {
             if(Globals.Lexeme == "*" || Globals.Lexeme == "/" || Globals.Lexeme == "&&")
             {
+                if(outputtedString.ToString() == String.Empty)
+                {
+                    outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
+                    rightHandSide = 1;
+                }
                 if (inReturn)
                 {
                     multiPart = true;
                 }
                 singleRightHand = false;
-                outputtedString.Append(Globals.Lexeme);
+                if(rightHandSide >= 2)
+                {
+                    if(outputtedString.ToString().StartsWith(getCurrentTemp()) == false)
+                    {
+                        outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
+                        outputtedString.Insert(0, getNextTemp());
+                    }
+                    WriteToFile(outputtedString.ToString());
+                    outputtedString.Clear();
+                    outputtedString.Append($"{getNextTemp()}={getPrevTemp()}{Globals.Lexeme}");
+                    rightHandSide = 1;
+                }
+                else
+                {
+                    outputtedString.Append(Globals.Lexeme);
+                }
                 Match(Globals.Symbol.mulopT);
                 Factor();
                 MoreFactor();
@@ -1174,13 +1194,6 @@ namespace Compiler
             else if(Globals.Token == Globals.Symbol.lparenT)
             {
                 Match(Globals.Symbol.lparenT);
-                if (rightHandSide < 2)
-                {
-                    expressionStack.Push(outputtedString.ToString());
-                    temps.Push(outputtedString.ToString().Substring(0, outputtedString.ToString().IndexOf('=')));
-                    outputtedString.Clear();
-                    outputtedString.Append($"{getNextTemp()}=");
-                }
                 Expr();
                 Match(Globals.Symbol.rparenT);
             }
