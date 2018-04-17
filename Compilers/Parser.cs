@@ -50,6 +50,9 @@ namespace Compiler
         private bool singleRightHand = true;
         private string functionName;
         private int globalOffset = 2;
+        private bool multiPart = false;
+        private Stack<string> expressionStack = new Stack<string>();
+        private Stack<string> temps = new Stack<string>();
 
         /// <summary>
         /// Default Constructor to create a Parser Object
@@ -306,7 +309,7 @@ namespace Compiler
                 ParameterList();
                 Match(Globals.Symbol.rparenT);
                 assignParamBPOffsets();
-                paramBasePointerCounter = 0;
+                paramBasePointerCounter = 4;
                 parameterOffset = 0;
                 Compound();
             }
@@ -324,12 +327,18 @@ namespace Compiler
         /// </summary>
         private void assignParamBPOffsets()
         {
-            for (int i = 0; i < actualParameters.Count; i++)
+            while(actualParameters.Count != 0)
             {
-                VariableEntry lookup = symbolTable.lookup(actualParameters.Pop().lexeme) as VariableEntry;
-                lookup.BPOffset = paramBasePointerCounter;
-                paramBasePointerCounter-=2;
+                if(actualParameters.Count != 0)
+                {
+                    VariableEntry lookup = symbolTable.lookup(actualParameters.Pop().lexeme) as VariableEntry;
+                    
+                    lookup.BPOffset = paramBasePointerCounter;
+                    paramBasePointerCounter += 2;
+
+                }
             }
+            actualParameters.Clear();
         }
 
         /// <summary>
@@ -353,7 +362,6 @@ namespace Compiler
                     variableType = currentVarType
                 };
                 actualParameters.Push(entry);
-                paramBasePointerCounter += 2;
                 insertSymbol(entry);
                 parameterOffset += currentTypeSize;
                 ParamTrail();
@@ -382,7 +390,6 @@ namespace Compiler
                     variableType = currentVarType
                 };
                 actualParameters.Push(entry);
-                paramBasePointerCounter += 2;
                 insertSymbol(entry);
                 parameterOffset += currentTypeSize;
                 ParamTrail();
@@ -407,7 +414,7 @@ namespace Compiler
             WriteToFile($"Endp {functionLexeme}");
             outputtedString.Clear();
             localBasePointerCounter = 2;
-            paramBasePointerCounter = 2;
+            paramBasePointerCounter = 4;
             FunctionEntry entry = new FunctionEntry()
             {
                 lexeme = functionLexeme,
@@ -518,12 +525,26 @@ namespace Compiler
             if(inFunction)
             {
                 templocal = -localBasePointerCounter;
-                localBasePointerCounter += 2;
+                if (currentVarType == TableEntry.VariableType.intType)
+                {
+                    localBasePointerCounter += 2;
+                }
+                else if (currentVarType == TableEntry.VariableType.floatType)
+                {
+                    localBasePointerCounter += 4;
+                }
             }
             else
             {
                 templocal = -globalOffset;
-                globalOffset += 2;
+                if (currentVarType == TableEntry.VariableType.intType)
+                {
+                    localBasePointerCounter += 2;
+                }
+                else if (currentVarType == TableEntry.VariableType.floatType)
+                {
+                    localBasePointerCounter += 4;
+                }
             }
             VariableEntry entry = new VariableEntry()
             {
@@ -560,7 +581,14 @@ namespace Compiler
                     }
 
                     int templocal = -localBasePointerCounter;
-                    localBasePointerCounter += 2;
+                    if(currentVarType == TableEntry.VariableType.intType)
+                    {
+                        localBasePointerCounter += 2;
+                    }
+                    else if(currentVarType == TableEntry.VariableType.floatType)
+                    {
+                        localBasePointerCounter += 4;
+                    }
                     VariableEntry entry = new VariableEntry()
                     {
                         lexeme = currentLexeme,
@@ -568,10 +596,9 @@ namespace Compiler
                         size = currentTypeSize,
                         Offset = localOffset,
                         variableType = currentVarType,
-                        BPOffset = -localBasePointerCounter
+                        BPOffset = templocal
                     };
                     insertSymbol(entry);
-                    localBasePointerCounter += 2;
                 }
                 else
                 {
@@ -604,6 +631,7 @@ namespace Compiler
         {
             if (Globals.Token == Globals.Symbol.idT)
             {
+
                 Statement();
                 Match(Globals.Symbol.semicolonT);
                 if(outputtedString.ToString() != String.Empty)
@@ -614,7 +642,7 @@ namespace Compiler
                 TableEntry lookup = symbolTable.lookup(finalLeftHandLex);
                 if (lookup is ConstantEntry)
                 {
-                    WriteToFile($"{finalLeftHand} = {getCurrentTemp()}");
+                    WriteToFile($"{finalLeftHand}={getCurrentTemp()}");
                 }
                 else if (lookup is VariableEntry)
                 {
@@ -627,7 +655,14 @@ namespace Compiler
                 }
                 //Possible have to print the contents remainning before clearing
                 outputtedString.Clear();
-                
+                if(Globals.Value != null)
+                {
+                    Globals.Value = null;
+                }
+                if(Globals.ValueReal != null)
+                {
+                    Globals.ValueReal = null;
+                }
                 StatList();
             }
             else
@@ -689,7 +724,10 @@ namespace Compiler
                 FuncCall();
                 outputtedString.Append(ax);
                 WriteToFile(outputtedString.ToString());
-                WriteToFile($"{finalLeftHand} = {ax}");
+                if (File.ReadLines(outputtedFileName).Last() != $"{finalLeftHand}={ax}")
+                {
+                    WriteToFile($"{finalLeftHand}={ax}");  
+                }
                 outputtedString.Clear();
             }
             else if (lookup == null)
@@ -706,7 +744,7 @@ namespace Compiler
             Match(Globals.Symbol.idT);
             Match(Globals.Symbol.lparenT);
             Params();
-            foreach(var p in passedParams)
+            while(passedParams.Count != 0)
             {
                 WriteToFile($"push {passedParams.Pop()}");
             }
@@ -736,7 +774,8 @@ namespace Compiler
                         }
                         else if (lookup is VariableEntry)
                         {
-                            passedParams.Push(lookup.lexeme);
+                            VariableEntry entry = lookup as VariableEntry;
+                            passedParams.Push(entry.getBPValue(overallDepth));
                         }
 
                     }
@@ -800,7 +839,8 @@ namespace Compiler
                             }
                             else if (lookup is VariableEntry)
                             {
-                                passedParams.Push(lookup.lexeme);
+                                VariableEntry entry = lookup as VariableEntry;
+                                passedParams.Push(entry.getBPValue(overallDepth));
                             }
 
                         }
@@ -869,15 +909,25 @@ namespace Compiler
         {
             if (Globals.Lexeme == "+" || Globals.Lexeme == "-" || Globals.Lexeme == "||")
             {
+                multiPart = true;
                 singleRightHand = false;
                 if(rightHandSide >= 2)
                 {
                     if(Globals.Token != Globals.Symbol.semicolonT)
                     {
-                        if(outputtedString.ToString().StartsWith("_t") == false)
+                        if(outputtedString.ToString().StartsWith(getCurrentTemp()) == false)
                         {
                             outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
                             outputtedString.Insert(0, getNextTemp());
+                        }
+                        else if(multiPart == true && outputtedString.ToString().StartsWith(getCurrentTemp()))
+                        {
+                            //May have to check all lines to see if it has been used
+                            if (File.ReadLines(outputtedFileName).Last().StartsWith(getCurrentTemp()) == true)
+                            {
+                                outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
+                                outputtedString.Insert(0, getNextTemp());
+                            }                         
                         }
                     }
                     WriteToFile(outputtedString.ToString());
@@ -900,7 +950,12 @@ namespace Compiler
                 {
                     if(outputtedString.ToString() != String.Empty && !inReturn)
                     {
-                        if (outputtedString.ToString().StartsWith("_t") == false && rightHandSide >=2)
+                        if (outputtedString.ToString().StartsWith(getCurrentTemp()) == false && rightHandSide >=2)
+                        {
+                            outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
+                            outputtedString.Insert(0, getNextTemp());
+                        }
+                        else if(multiPart && rightHandSide >=2 && outputtedString.ToString().StartsWith(getCurrentTemp()) == true)
                         {
                             outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
                             outputtedString.Insert(0, getNextTemp());
@@ -930,8 +985,12 @@ namespace Compiler
         {
             if(Globals.Lexeme == "*" || Globals.Lexeme == "/" || Globals.Lexeme == "&&")
             {
+                if (inReturn)
+                {
+                    multiPart = true;
+                }
                 singleRightHand = false;
-                WriteToFile(outputtedString.ToString());
+                outputtedString.Append(Globals.Lexeme);
                 Match(Globals.Symbol.mulopT);
                 Factor();
                 MoreFactor();
@@ -970,6 +1029,13 @@ namespace Compiler
                         unary = false;
                         rightHandSide = 0;
                     }
+                    else if (inReturn && l.getNextChar() == ';')
+                    {
+                        if (multiPart)
+                        {
+                            outputtedString.Append($"{getCurrentTemp()}");
+                        }
+                    }
                 }
                 else if(lookup is ConstantEntry)
                 {
@@ -987,6 +1053,17 @@ namespace Compiler
                             unary = false;
                             rightHandSide = 0;
                         }
+                        else if (inReturn && l.getNextChar() == ';')
+                        {
+                            if (multiPart)
+                            {
+                                outputtedString.Append($"{getCurrentTemp()}");
+                            }
+                            else
+                            {
+                                outputtedString.Append(entry.value);
+                            }
+                        }
                     }
                     else
                     {
@@ -1001,6 +1078,17 @@ namespace Compiler
                             unary = false;
                             rightHandSide = 0;
                         }
+                        else if (inReturn && l.getNextChar() == ';')
+                        {
+                            if (multiPart)
+                            {
+                                outputtedString.Append($"{getCurrentTemp()}");
+                            }
+                            else
+                            {
+                                outputtedString.Append(entry.value);
+                            }
+                        }
                     }
                     
                 }
@@ -1013,7 +1101,7 @@ namespace Compiler
                 rightHandSide++;
                 if (rightHandSide >= 2)
                 {
-                    if (outputtedString.ToString().StartsWith("_t") == false)
+                    if (outputtedString.ToString().StartsWith(getCurrentTemp()) == false || File.ReadLines(outputtedFileName).Last().StartsWith(getCurrentTemp()) == false)
                     {
                         outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
                         outputtedString.Insert(0, getNextTemp());
@@ -1033,6 +1121,17 @@ namespace Compiler
                 else if (inReturn)
                 {
                     finalLeftHand = ax;
+                    if (l.getNextChar() == ';')
+                    {
+                        if (multiPart)
+                        {
+                            outputtedString.Append($"{getCurrentTemp()}");
+                        }
+                        else
+                        {
+                            outputtedString.Append(Globals.Value);
+                        }
+                    }
                 }
             }
             else if(Globals.ValueReal != null)
@@ -1041,6 +1140,11 @@ namespace Compiler
                 rightHandSide++;
                 if (rightHandSide >= 2)
                 {
+                    if (outputtedString.ToString().StartsWith(getCurrentTemp()) == false)
+                    {
+                        outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
+                        outputtedString.Insert(0, getNextTemp());
+                    }
                     WriteToFile(outputtedString.ToString());
                     outputtedString.Clear();
                     outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
@@ -1054,11 +1158,29 @@ namespace Compiler
                 else if (inReturn)
                 {
                     finalLeftHand = ax;
+                    if (l.getNextChar() == ';')
+                    {
+                        if (multiPart)
+                        {
+                            outputtedString.Append($"{getCurrentTemp()}");
+                        }
+                        else
+                        {
+                            outputtedString.Append(Globals.ValueReal);
+                        }
+                    }
                 }
             }
             else if(Globals.Token == Globals.Symbol.lparenT)
             {
                 Match(Globals.Symbol.lparenT);
+                if (rightHandSide < 2)
+                {
+                    expressionStack.Push(outputtedString.ToString());
+                    temps.Push(outputtedString.ToString().Substring(0, outputtedString.ToString().IndexOf('=')));
+                    outputtedString.Clear();
+                    outputtedString.Append($"{getNextTemp()}=");
+                }
                 Expr();
                 Match(Globals.Symbol.rparenT);
             }
@@ -1091,10 +1213,15 @@ namespace Compiler
         private void RetList()
         {
             inReturn = true;
+            multiPart = false;
             Match(Globals.Symbol.returnT);
+            outputtedString.Clear();
             Expr();
-            WriteToFile($"{finalLeftHand} = {outputtedString.ToString()}");
             Match(Globals.Symbol.semicolonT);
+            WriteToFile($"{ax}={outputtedString}");
+            outputtedString.Clear();
+            inReturn = false;
+            multiPart = false;
         }
         /// <summary>
         /// Match() Matches the current token to which is expected in the grammar
@@ -1143,7 +1270,8 @@ namespace Compiler
 
         private string getPrevTemp()
         {
-            int previous = tempCounter - 2;
+            
+            int previous = localBasePointerCounter - 4;
             if(previous == 0)
             {
                 previous = 1;
