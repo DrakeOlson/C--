@@ -631,30 +631,8 @@ namespace Compiler
         {
             if (Globals.Token == Globals.Symbol.idT)
             {
-
                 Statement();
                 Match(Globals.Symbol.semicolonT);
-                if(outputtedString.ToString() != String.Empty)
-                {
-                    WriteToFile(outputtedString.ToString());
-                    outputtedString.Clear();
-                }
-                TableEntry lookup = symbolTable.lookup(finalLeftHandLex);
-                if (lookup is ConstantEntry)
-                {
-                    WriteToFile($"{finalLeftHand}={getCurrentTemp()}");
-                }
-                else if (lookup is VariableEntry)
-                {
-                    VariableEntry temp = lookup as VariableEntry;
-                    if (File.ReadLines(outputtedFileName).Last() != $"{temp.getBPValue(overallDepth)}={getCurrentTemp()}" && !singleRightHand)
-                    {
-                        singleRightHand = true;
-                        WriteToFile($"{temp.getBPValue(overallDepth)}={getCurrentTemp()}");
-                    }
-                }
-                //Possible have to print the contents remainning before clearing
-                outputtedString.Clear();
                 if(Globals.Value != null)
                 {
                     Globals.Value = null;
@@ -696,28 +674,38 @@ namespace Compiler
         /// </summary>
         private void AssignStat()
         {
-            TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
-            if(lookup == null)
+            TableEntry leftHand = symbolTable.lookup(Globals.Lexeme);
+            if(leftHand == null)
             {
                 Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
                 Environment.Exit(-1);
             }
-            if(lookup  is ConstantEntry)
+            if(leftHand is ConstantEntry)
             {
                 Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} is a constant and can't be reassigned.");
                 Environment.Exit(-1);
             }
-            VariableEntry temp = lookup as VariableEntry;
-            outputtedString.Append(temp.getBPValue(overallDepth));
-            finalLeftHandLex = Globals.Lexeme;
-            finalLeftHand = temp.getBPValue(overallDepth);
             Match(Globals.Symbol.idT);
             outputtedString.Append("=");
             Match(Globals.Symbol.assignopT);
-            lookup = symbolTable.lookup(Globals.Lexeme);
+            TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
             if ((lookup != null && (lookup is VariableEntry || lookup is ConstantEntry)) || (lookup == null && (Globals.Token == Globals.Symbol.floatT || Globals.Token == Globals.Symbol.intT)))
             {
-                Expr();
+                TableEntry idptr = null;
+                TableEntry Eplace = null;
+                idptr = leftHand;
+                Expr(ref Eplace);
+                if(Eplace is VariableEntry)
+                {
+                    VariableEntry lefthandptr = idptr as VariableEntry;
+                    VariableEntry temp = Eplace as VariableEntry;
+                    WriteToFile($"{lefthandptr.getBPValue()}={temp.getBPValue()}");
+                }
+                else
+                {
+                    VariableEntry lefthandptr = idptr as VariableEntry;
+                    WriteToFile($"{lefthandptr.getBPValue()}={Eplace.lexeme}");
+                }              
             }
             else if (lookup != null && lookup is FunctionEntry)
             {
@@ -883,89 +871,63 @@ namespace Compiler
         /// <summary>
         /// Grammar Rule: AssignStat		->	idt  =  Expr 
         /// </summary>
-        private void Expr()
+        private void Expr(ref TableEntry Eplace)
         {
-            Realtion();
+            Realtion(ref Eplace);
         }
         /// <summary>
         /// Grammar Rule Realtion		->	SimpleExpr
         /// </summary>
-        private void Realtion()
+        private void Realtion(ref TableEntry Eplace)
         {
-            SimpleExpr();
+            SimpleExpr(ref Eplace);
         }
         /// <summary>
         /// Grammar Rule SimpleExpr		->	SignOp Term MoreTerm
         /// </summary>
-        private void SimpleExpr()
+        private void SimpleExpr(ref TableEntry Eplace)
         {
-            SignOp();
-            Term();
-
-            MoreTerm();
+            TableEntry Tplace = null;
+            SignOp(ref Tplace);
+            Term(ref Tplace);
+            MoreTerm(ref Tplace);
+            Eplace = Tplace;
         }
 
-        private void MoreTerm()
+        private void MoreTerm(ref TableEntry Rplace)
         {
+            TableEntry Tplace = null;
+            TableEntry tmpptr = null;
+            string output;
             if (Globals.Lexeme == "+" || Globals.Lexeme == "-" || Globals.Lexeme == "||")
             {
-                multiPart = true;
-                singleRightHand = false;
-                if(rightHandSide >= 2)
+                getNextTemp(ref tmpptr);
+                if (Rplace is ConstantEntry)
                 {
-                    if(Globals.Token != Globals.Symbol.semicolonT)
-                    {
-                        if(outputtedString.ToString().StartsWith(getCurrentTemp()) == false)
-                        {
-                            outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
-                            outputtedString.Insert(0, getNextTemp());
-                        }
-                        else if(multiPart == true && outputtedString.ToString().StartsWith(getCurrentTemp()))
-                        {
-                            //May have to check all lines to see if it has been used
-                            if (File.ReadLines(outputtedFileName).Last().StartsWith(getCurrentTemp()) == true)
-                            {
-                                outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
-                                outputtedString.Insert(0, getNextTemp());
-                            }                         
-                        }
-                    }
-                    WriteToFile(outputtedString.ToString());
-                    outputtedString.Clear();
-                    outputtedString.Append($"{getNextTemp()}={getPrevTemp()}{Globals.Lexeme}");
-                    rightHandSide = 1;
+                    output = $"{tmpptr.lexeme}={Rplace.lexeme}{Globals.Lexeme}";
                 }
                 else
                 {
-                    outputtedString.Append(Globals.Lexeme);
+                    VariableEntry temp = Rplace as VariableEntry;
+                    output = $"{tmpptr.lexeme}={temp.getBPValue()}{Globals.Lexeme}";
                 }
-
                 Match(Globals.Symbol.addopT);
-                Term();
-                MoreTerm();
+                Term(ref Tplace);
+                if (Tplace is ConstantEntry)
+                {
+                    output += $"{Tplace.lexeme}";
+                }
+                else
+                {
+                    VariableEntry temp = Tplace as VariableEntry;
+                    output += $"{temp.getBPValue()}";
+                }
+                Rplace = tmpptr;
+                WriteToFile(output);
+                MoreTerm(ref Rplace);
             }
             else
             {
-                if (rightHandSide >= 2 || Globals.Token == Globals.Symbol.semicolonT)
-                {
-                    if(outputtedString.ToString() != String.Empty && !inReturn)
-                    {
-                        if (outputtedString.ToString().StartsWith(getCurrentTemp()) == false && rightHandSide >=2)
-                        {
-                            outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
-                            outputtedString.Insert(0, getNextTemp());
-                        }
-                        else if(multiPart && rightHandSide >=2 && outputtedString.ToString().StartsWith(getCurrentTemp()) == true)
-                        {
-                            outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
-                            outputtedString.Insert(0, getNextTemp());
-                        }
-                        WriteToFile(outputtedString.ToString());
-                        outputtedString.Clear();
-                        
-                    }
-                    rightHandSide = 0;
-                }
                 //lambda
             }
         }
@@ -973,47 +935,45 @@ namespace Compiler
         /// <summary>
         /// Grammar Rule Term			->	Factor  MoreFactor
         /// </summary>
-        private void Term()
+        private void Term(ref TableEntry Tplace)
         {
-            Factor();
-            MoreFactor();
+            Factor(ref Tplace);
+            MoreFactor(ref Tplace);
         }
         /// <summary>
         /// Mulop Factor MoreFactor | lambda
         /// </summary>
-        private void MoreFactor()
+        private void MoreFactor(ref TableEntry Rplace)
         {
+            TableEntry Tplace = null;
+            TableEntry tmpptr = null;
+            string output;
             if(Globals.Lexeme == "*" || Globals.Lexeme == "/" || Globals.Lexeme == "&&")
             {
-                if(outputtedString.ToString() == String.Empty)
+                getNextTemp(ref tmpptr);
+                if (Rplace is ConstantEntry)
                 {
-                    outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
-                    rightHandSide = 1;
-                }
-                if (inReturn)
-                {
-                    multiPart = true;
-                }
-                singleRightHand = false;
-                if(rightHandSide >= 2)
-                {
-                    if(outputtedString.ToString().StartsWith(getCurrentTemp()) == false)
-                    {
-                        outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
-                        outputtedString.Insert(0, getNextTemp());
-                    }
-                    WriteToFile(outputtedString.ToString());
-                    outputtedString.Clear();
-                    outputtedString.Append($"{getNextTemp()}={getPrevTemp()}{Globals.Lexeme}");
-                    rightHandSide = 1;
+                    output = $"{tmpptr.lexeme}={Rplace.lexeme}{Globals.Lexeme}";
                 }
                 else
                 {
-                    outputtedString.Append(Globals.Lexeme);
+                    VariableEntry temp = Rplace as VariableEntry;
+                    output = $"{tmpptr.lexeme}={temp.getBPValue()}{Globals.Lexeme}";
                 }
                 Match(Globals.Symbol.mulopT);
-                Factor();
-                MoreFactor();
+                Factor(ref Tplace);
+                if (Tplace is ConstantEntry)
+                {
+                    output += $"{Tplace.lexeme}";
+                }
+                else
+                {
+                    VariableEntry temp = Tplace as VariableEntry;
+                    output += $"{temp.getBPValue()}";
+                }
+                Rplace = tmpptr;
+                WriteToFile(output);
+                MoreFactor(ref Rplace);
             }
             else
             {
@@ -1025,190 +985,94 @@ namespace Compiler
         /// <summary>
         /// Grammar Rule ->	id | num|( Expr )
         /// </summary>
-        private void Factor()
+        private void Factor(ref TableEntry Tplace)
         {
-            TableEntry lookup;
             if (Globals.Token == Globals.Symbol.idT)
             {
-                lookup = symbolTable.lookup(Globals.Lexeme);
-                if (lookup == null)
+                Tplace = symbolTable.lookup(Globals.Lexeme);
+                if (Tplace == null)
                 {
                     Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
                     Environment.Exit(-1);
                 }
-                if(lookup is VariableEntry)
+                else
                 {
-                    VariableEntry temp = lookup as VariableEntry;
-                    outputtedString.Append(temp.getBPValue(overallDepth));
-                    rightHandSide++;
-                    if (unary)
-                    {
-                        WriteToFile(outputtedString.ToString());
-                        outputtedString.Clear();
-                        outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
-                        unary = false;
-                        rightHandSide = 0;
-                    }
-                    else if (inReturn && l.getNextChar() == ';')
-                    {
-                        if (multiPart)
-                        {
-                            outputtedString.Append($"{getCurrentTemp()}");
-                        }
-                    }
+                    Tplace = symbolTable.lookup(Globals.Lexeme);
+                    Match(Globals.Symbol.idT);
                 }
-                else if(lookup is ConstantEntry)
-                {
-                    
-                    if(lookup is RealConstantEntry)
-                    {
-                        RealConstantEntry entry = lookup as RealConstantEntry;
-                        outputtedString.Append(entry.value);
-                        rightHandSide++;
-                        if (unary)
-                        {
-                            WriteToFile(outputtedString.ToString());
-                            outputtedString.Clear();
-                            outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
-                            unary = false;
-                            rightHandSide = 0;
-                        }
-                        else if (inReturn && l.getNextChar() == ';')
-                        {
-                            if (multiPart)
-                            {
-                                outputtedString.Append($"{getCurrentTemp()}");
-                            }
-                            else
-                            {
-                                outputtedString.Append(entry.value);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        IntegerConstantEntry entry = lookup as IntegerConstantEntry;
-                        outputtedString.Append(entry.value);
-                        rightHandSide++;
-                        if (unary)
-                        {
-                            WriteToFile(outputtedString.ToString());
-                            outputtedString.Clear();
-                            outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
-                            unary = false;
-                            rightHandSide = 0;
-                        }
-                        else if (inReturn && l.getNextChar() == ';')
-                        {
-                            if (multiPart)
-                            {
-                                outputtedString.Append($"{getCurrentTemp()}");
-                            }
-                            else
-                            {
-                                outputtedString.Append(entry.value);
-                            }
-                        }
-                    }
-                    
-                }
-                
-                Match(Globals.Symbol.idT);
             }
             else if (Globals.Value != null)
             {
-                outputtedString.Append(Globals.Value);
-                rightHandSide++;
-                if (rightHandSide >= 2)
+                IntegerConstantEntry localTemp = new IntegerConstantEntry()
                 {
-                    if (outputtedString.ToString().StartsWith(getCurrentTemp()) == false || File.ReadLines(outputtedFileName).Last().StartsWith(getCurrentTemp()) == false)
-                    {
-                        outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
-                        outputtedString.Insert(0, getNextTemp());
-                    }
-                    WriteToFile(outputtedString.ToString());
-                    outputtedString.Clear();
-                    VariableEntry entry = symbolTable.lookup(finalLeftHandLex) as VariableEntry;
-                    outputtedString.Append($"{entry.getBPValue(overallDepth)}={getCurrentTemp()}");
-                    rightHandSide = 1;
-                }
+                    lexeme = getNextTemp(false),
+                    depth = overallDepth,
+                    tokenType = Globals.Symbol.idT,
+                    value = Globals.Value.GetValueOrDefault()
+                };
+                WriteToFile($"{localTemp.lexeme}={Globals.Value.GetValueOrDefault()}");
+                symbolTable.insert(localTemp);
+                Tplace = localTemp;
                 Match(Globals.Symbol.intT);
-                if (Globals.Lexeme == ";" && !inReturn)
-                {
-                    WriteToFile(outputtedString.ToString());
-                    outputtedString.Clear();
-                }
-                else if (inReturn)
-                {
-                    finalLeftHand = ax;
-                    if (l.getNextChar() == ';')
-                    {
-                        if (multiPart)
-                        {
-                            outputtedString.Append($"{getCurrentTemp()}");
-                        }
-                        else
-                        {
-                            outputtedString.Append(Globals.Value);
-                        }
-                    }
-                }
             }
             else if(Globals.ValueReal != null)
             {
-                outputtedString.Append(Globals.ValueReal);
-                rightHandSide++;
-                if (rightHandSide >= 2)
+                RealConstantEntry localTemp = new RealConstantEntry()
                 {
-                    if (outputtedString.ToString().StartsWith(getCurrentTemp()) == false)
-                    {
-                        outputtedString.Remove(0, outputtedString.ToString().IndexOf('='));
-                        outputtedString.Insert(0, getNextTemp());
-                    }
-                    WriteToFile(outputtedString.ToString());
-                    outputtedString.Clear();
-                    outputtedString.Append($"{getNextTemp()}={getPrevTemp()}");
-                    rightHandSide = 1;
-                }
+                    lexeme = getNextTemp(false),
+                    depth = overallDepth,
+                    tokenType = Globals.Symbol.idT,
+                    value = Globals.ValueReal.GetValueOrDefault()
+                };
+                symbolTable.insert(localTemp);
+                WriteToFile($"{localTemp.lexeme}={Globals.ValueReal.GetValueOrDefault()}");
+                Tplace = localTemp;
                 Match(Globals.Symbol.floatT);
-                if (Globals.Lexeme == ";" && !inReturn)
-                {
-                    outputtedString.Clear();
-                }
-                else if (inReturn)
-                {
-                    finalLeftHand = ax;
-                    if (l.getNextChar() == ';')
-                    {
-                        if (multiPart)
-                        {
-                            outputtedString.Append($"{getCurrentTemp()}");
-                        }
-                        else
-                        {
-                            outputtedString.Append(Globals.ValueReal);
-                        }
-                    }
-                }
             }
             else if(Globals.Token == Globals.Symbol.lparenT)
             {
                 Match(Globals.Symbol.lparenT);
-                Expr();
+                Expr(ref Tplace);
                 Match(Globals.Symbol.rparenT);
+            }
+            else
+            {
+                Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Expression doesn't start with a decalred variable, number, or '('.");
+                Environment.Exit(-1);
             }
         }
 
         /// <summary>
         /// SignOp		->	! | - | Empty
         /// </summary>
-        private void SignOp()
+        private void SignOp(ref TableEntry Tplace)
         {
+            string original = String.Empty;
+            if (Tplace is ConstantEntry)
+            {
+                if (Tplace is IntegerConstantEntry)
+                {
+                    IntegerConstantEntry localTemp = Tplace as IntegerConstantEntry;
+                    original = localTemp.value.ToString();
+                }
+                else
+                {
+                    IntegerConstantEntry localTemp = Tplace as IntegerConstantEntry;
+                    original = localTemp.value.ToString();
+                }
+
+            }
+            else if (Tplace is VariableEntry)
+            {
+                VariableEntry localTemp = Tplace as VariableEntry;
+                original = localTemp.getBPValue();
+            }
+           
             if (Globals.Lexeme == "-")
             {
-                unary = true;
-                outputtedString.Append(getNextTemp() + "=" + Globals.Lexeme);
                 Match(Globals.Symbol.addopT);
+                getNextTemp(ref Tplace);
+                WriteToFile($"{Tplace.lexeme} = {original}");
             }
             else if (Globals.Token == Globals.Symbol.notT)
             {
@@ -1225,13 +1089,11 @@ namespace Compiler
         /// </summary>
         private void RetList()
         {
-            inReturn = true;
-            multiPart = false;
+            TableEntry Eplace = null;
             Match(Globals.Symbol.returnT);
-            outputtedString.Clear();
-            Expr();
+            Expr(ref Eplace);
             Match(Globals.Symbol.semicolonT);
-            WriteToFile($"{ax}={outputtedString}");
+            WriteToFile($"{ax}={Eplace.lexeme}");
             outputtedString.Clear();
             inReturn = false;
             multiPart = false;
@@ -1274,11 +1136,43 @@ namespace Compiler
             }
         }
 
-        private string getNextTemp()
+        private string getNextTemp(bool insert)
         {
             string returned = "_BP-" + localBasePointerCounter;
+            if (insert)
+            {
+                VariableEntry entry = new VariableEntry
+                {
+                    lexeme = returned,
+                    variableType = TableEntry.VariableType.tempType,
+                    depth = overallDepth,
+                    size = 2,
+                    Offset = localOffset,
+                    BPOffset = -localBasePointerCounter
+                };
+                symbolTable.insert(entry);
+                WriteToFile($"{entry.lexeme} = {Globals.Lexeme}");
+            }
+            localOffset += 2;
             localBasePointerCounter += 2;
             return returned;
+        }
+        private void getNextTemp(ref TableEntry entry)
+        {
+            string returned = "_BP-" + localBasePointerCounter;
+            VariableEntry temp = new VariableEntry
+            {
+                lexeme = returned,
+                variableType = TableEntry.VariableType.tempType,
+                depth = overallDepth,
+                size = 2,
+                Offset = localOffset,
+                BPOffset = -localBasePointerCounter
+            };
+            symbolTable.insert(temp);
+            localOffset += 2;
+            localBasePointerCounter += 2;
+            entry = temp;
         }
 
         private string getPrevTemp()

@@ -1,10 +1,7 @@
-int main( int c, int d, int e)
+int main()
 {
-  int a,b;
-  
-  a = 1;
+  int a,b,c;
   b = 20;
-  c = 30;
-  c= b + c * c;
+  c = a+(b+c) * (3+a);
   return 0;
 }

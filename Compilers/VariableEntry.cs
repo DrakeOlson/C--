@@ -40,5 +40,23 @@ namespace Compiler
                 }
             }
         }
+        public string getBPValue()
+        {
+            if (depth == 0)
+            {
+                return lexeme;
+            }
+            else
+            {
+                if (BPOffset > 0)
+                {
+                    return $"_BP+{BPOffset}";
+                }
+                else
+                {
+                    return $"_BP{BPOffset}";
+                }
+            }
+        }
     }
 }

@@ -11,3 +11,9 @@ D:\Code\Compilers\Compilers\Compilers\obj\Debug\Compiler.csprojResolveAssemblyRe
 D:\Code\Compilers\Compilers\Compilers\obj\Debug\Compiler.csproj.CoreCompileInputs.cache
 D:\Code\Compilers\Compilers\Compilers\obj\Debug\Compiler.exe
 D:\Code\Compilers\Compilers\Compilers\obj\Debug\Compiler.pdb
+C:\Users\Student\Desktop\Compilers\Compilers\bin\Debug\Compiler.exe.config
+C:\Users\Student\Desktop\Compilers\Compilers\bin\Debug\Compiler.exe
+C:\Users\Student\Desktop\Compilers\Compilers\bin\Debug\Compiler.pdb
+C:\Users\Student\Desktop\Compilers\Compilers\obj\Debug\Compiler.csprojResolveAssemblyReference.cache
+C:\Users\Student\Desktop\Compilers\Compilers\obj\Debug\Compiler.exe
+C:\Users\Student\Desktop\Compilers\Compilers\obj\Debug\Compiler.pdb

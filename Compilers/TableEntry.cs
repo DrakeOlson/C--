@@ -10,7 +10,7 @@ namespace Compiler
 {
     public abstract class TableEntry
     {
-        public enum VariableType { charType, intType, floatType }
+        public enum VariableType { charType, intType, floatType,tempType }
         public enum EntryType { constEntry, varEntry, functionType }
 
         public Globals.Symbol tokenType = Globals.Symbol.idT;
