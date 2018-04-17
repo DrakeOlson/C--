@@ -54,6 +54,8 @@ namespace Compiler
         private Stack<string> expressionStack = new Stack<string>();
         private Stack<string> temps = new Stack<string>();
 
+        public bool hasSign = false;
+
         /// <summary>
         /// Default Constructor to create a Parser Object
         /// </summary>
@@ -428,6 +430,7 @@ namespace Compiler
             isParameter = false;
             inFunction = false;
             numberOfLocalParameters = 0;
+            localBasePointerCounter = 2;
             insertSymbol(entry);
             symbolTable.writeTable(overallDepth);
             symbolTable.deleteDepth(overallDepth);
@@ -675,7 +678,7 @@ namespace Compiler
         private void AssignStat()
         {
             TableEntry leftHand = symbolTable.lookup(Globals.Lexeme);
-            if(leftHand == null)
+            if(leftHand == null && Globals.Lexeme != "-")
             {
                 Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
                 Environment.Exit(-1);
@@ -685,11 +688,12 @@ namespace Compiler
                 Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} is a constant and can't be reassigned.");
                 Environment.Exit(-1);
             }
+            
             Match(Globals.Symbol.idT);
             outputtedString.Append("=");
             Match(Globals.Symbol.assignopT);
             TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
-            if ((lookup != null && (lookup is VariableEntry || lookup is ConstantEntry)) || (lookup == null && (Globals.Token == Globals.Symbol.floatT || Globals.Token == Globals.Symbol.intT)))
+            if ((lookup != null && (lookup is VariableEntry || lookup is ConstantEntry)) || (lookup == null && (Globals.Token == Globals.Symbol.floatT || Globals.Token == Globals.Symbol.intT)) || Globals.Lexeme == "-")
             {
                 TableEntry idptr = null;
                 TableEntry Eplace = null;
@@ -709,14 +713,9 @@ namespace Compiler
             }
             else if (lookup != null && lookup is FunctionEntry)
             {
+                VariableEntry temp = leftHand as VariableEntry;
                 FuncCall();
-                outputtedString.Append(ax);
-                WriteToFile(outputtedString.ToString());
-                if (File.ReadLines(outputtedFileName).Last() != $"{finalLeftHand}={ax}")
-                {
-                    WriteToFile($"{finalLeftHand}={ax}");  
-                }
-                outputtedString.Clear();
+                WriteToFile($"{temp.getBPValue()} = {ax}");
             }
             else if (lookup == null)
             {
@@ -798,10 +797,23 @@ namespace Compiler
             }
             else
             {
+                
                 //Lambda
             }
+
+            passedParams = reverseParams(passedParams);
         }
 
+        private Stack<object> reverseParams(Stack<object> passedParams)
+        {
+            Stack<object> temp = new Stack<object>();
+
+            while(passedParams.Count != 0)
+            {
+                temp.Push(passedParams.Pop());
+            }
+            return temp;
+        }
 
         private void ParamsTail()
         {
@@ -863,6 +875,7 @@ namespace Compiler
             }
             else
             {
+                passedParams.Reverse();
                 //lambda
             }
 
@@ -915,7 +928,16 @@ namespace Compiler
                 Term(ref Tplace);
                 if (Tplace is ConstantEntry)
                 {
-                    output += $"{Tplace.lexeme}";
+                    if (Tplace is IntegerConstantEntry)
+                    {
+                        IntegerConstantEntry tempT = Tplace as IntegerConstantEntry;
+                        output += $"{tempT.value}";
+                    }
+                    else
+                    {
+                        RealConstantEntry tempT = Tplace as RealConstantEntry;
+                        output += $"{tempT.value}";
+                    }
                 }
                 else
                 {
@@ -964,7 +986,16 @@ namespace Compiler
                 Factor(ref Tplace);
                 if (Tplace is ConstantEntry)
                 {
-                    output += $"{Tplace.lexeme}";
+                    if(Tplace is IntegerConstantEntry)
+                    {
+                        IntegerConstantEntry tempT = Tplace as IntegerConstantEntry;
+                        output += $"{tempT.value}";
+                    }
+                    else
+                    {
+                        RealConstantEntry tempT = Tplace as RealConstantEntry;
+                        output += $"{tempT.value}";
+                    }
                 }
                 else
                 {
@@ -989,15 +1020,24 @@ namespace Compiler
         {
             if (Globals.Token == Globals.Symbol.idT)
             {
-                Tplace = symbolTable.lookup(Globals.Lexeme);
-                if (Tplace == null)
+                TableEntry tempEntry = null;
+                if (hasSign)
+                {
+                    tempEntry = Tplace;
+                }
+                else
+                {
+                    tempEntry = symbolTable.lookup(Globals.Lexeme);
+                }
+                if (tempEntry == null)
                 {
                     Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Token {Globals.Lexeme} hasn't been declared.");
                     Environment.Exit(-1);
                 }
                 else
                 {
-                    Tplace = symbolTable.lookup(Globals.Lexeme);
+                    Tplace = tempEntry;
+                    hasSign = false;
                     Match(Globals.Symbol.idT);
                 }
             }
@@ -1046,33 +1086,35 @@ namespace Compiler
         /// SignOp		->	! | - | Empty
         /// </summary>
         private void SignOp(ref TableEntry Tplace)
-        {
-            string original = String.Empty;
-            if (Tplace is ConstantEntry)
-            {
-                if (Tplace is IntegerConstantEntry)
-                {
-                    IntegerConstantEntry localTemp = Tplace as IntegerConstantEntry;
-                    original = localTemp.value.ToString();
-                }
-                else
-                {
-                    IntegerConstantEntry localTemp = Tplace as IntegerConstantEntry;
-                    original = localTemp.value.ToString();
-                }
-
-            }
-            else if (Tplace is VariableEntry)
-            {
-                VariableEntry localTemp = Tplace as VariableEntry;
-                original = localTemp.getBPValue();
-            }
-           
+        {  
             if (Globals.Lexeme == "-")
             {
-                Match(Globals.Symbol.addopT);
-                getNextTemp(ref Tplace);
-                WriteToFile($"{Tplace.lexeme} = {original}");
+                hasSign = true;
+                if (Char.IsLetter(l.getNextChar())){
+                    Match(Globals.Symbol.addopT);
+                    getNextTemp(ref Tplace);
+                    TableEntry temp = symbolTable.lookup(Globals.Lexeme);
+                    if(temp is VariableEntry)
+                    {
+                        VariableEntry var = temp as VariableEntry;
+                        WriteToFile($"{Tplace.lexeme} = -{var.getBPValue()}");
+                    }
+                    else if(temp is ConstantEntry)
+                    {
+                        if(temp is IntegerConstantEntry)
+                        {
+                            IntegerConstantEntry var = temp as IntegerConstantEntry;
+                            int tempValue = -var.value;
+                            WriteToFile($"{Tplace.lexeme} = {-tempValue}");
+                        }
+                        else if(temp is RealConstantEntry)
+                        {
+                            RealConstantEntry var = temp as RealConstantEntry;
+                            float tempValue = -var.value;
+                            WriteToFile($"{Tplace.lexeme} = {-tempValue}");
+                        }
+                    }
+                }
             }
             else if (Globals.Token == Globals.Symbol.notT)
             {
