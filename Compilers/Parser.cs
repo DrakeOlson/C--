@@ -78,6 +78,15 @@ namespace Compiler
                 Console.WriteLine($"Error: Line {Globals.LineNumber+1}: Reached end of file token with remaining tokens left over");
             }
             symbolTable.writeTable(overallDepth);
+            if(File.ReadAllLines(outputtedFileName).Contains("Proc main") == false && File.ReadAllLines(outputtedFileName).Contains("Proc Main") == false)
+            {
+                File.Delete(outputtedFileName);
+                Console.WriteLine("Error: No function named 'main'!");
+            }
+            else
+            {
+                WriteToFile("Call proc main");
+            }
         }
 
         /// <summary>
@@ -1215,28 +1224,6 @@ namespace Compiler
             localOffset += 2;
             localBasePointerCounter += 2;
             entry = temp;
-        }
-
-        private string getPrevTemp()
-        {
-            
-            int previous = localBasePointerCounter - 4;
-            if(previous == 0)
-            {
-                previous = 1;
-            }
-            string returned = "_BP-" + previous;
-            return returned;
-        }
-        private string getCurrentTemp()
-        {
-            int previous = localBasePointerCounter - 2;
-            if (previous == 0)
-            {
-                previous = 1;
-            }
-            string returned = "_BP-" + previous;
-            return returned;
         }
 
         private void WriteToFile(string line)
