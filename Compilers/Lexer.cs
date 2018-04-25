@@ -97,7 +97,7 @@ namespace Compiler
             }
             else if (Globals.Lexeme[0] == '=' || Globals.Lexeme[0] == '!' || Globals.Lexeme[0] == '<' || Globals.Lexeme[0] == '>' || Globals.Lexeme[0] == '&' || Globals.Lexeme[0] == '|')
             {
-                if (Globals.currentChar == '=' || Globals.currentChar == '|' || Globals.currentChar == '&')
+                if (Globals.currentChar == '=' || Globals.currentChar == '|' || Globals.currentChar == '&' || Globals.currentChar == '>' || Globals.currentChar == '<')
                 {
                     ProcessDoubleToken();
                 }
@@ -171,6 +171,16 @@ namespace Compiler
                 case "&&":
                     {
                         Globals.Token = Globals.Symbol.mulopT;
+                        break;
+                    }
+                case ">>":
+                    {
+                        Globals.Token = Globals.Symbol.cinT;
+                        break;
+                    }
+                case "<<":
+                    {
+                        Globals.Token = Globals.Symbol.coutT;
                         break;
                     }
             }
@@ -370,6 +380,8 @@ namespace Compiler
             Globals.SymbolDictionary.Add("void", Globals.Symbol.voidT);
             Globals.SymbolDictionary.Add("const", Globals.Symbol.constT);
             Globals.SymbolDictionary.Add("return", Globals.Symbol.returnT);
+            Globals.SymbolDictionary.Add("cout", Globals.Symbol.coutT);
+            Globals.SymbolDictionary.Add("cin", Globals.Symbol.cinT);
             Globals.SymbolDictionary.Add("(", Globals.Symbol.lparenT);
             Globals.SymbolDictionary.Add(")", Globals.Symbol.rparenT);
             Globals.SymbolDictionary.Add("{", Globals.Symbol.lbraceT);
@@ -395,6 +407,9 @@ namespace Compiler
             Globals.SymbolDictionary.Add(">=", Globals.Symbol.relopT);
             Globals.SymbolDictionary.Add(">", Globals.Symbol.relopT);
             Globals.SymbolDictionary.Add("!", Globals.Symbol.notT);
+            Globals.SymbolDictionary.Add(">>", Globals.Symbol.cinsymT);
+            Globals.SymbolDictionary.Add("<<", Globals.Symbol.coutsymT);
+            Globals.SymbolDictionary.Add("endl", Globals.Symbol.endlT);
         }
 
         /// <summary>

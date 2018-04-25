@@ -27,7 +27,9 @@ namespace Compiler
                 p.Run();
                 if (Globals.Token == Globals.Symbol.eoft)
                 {
-                    Console.WriteLine("Reached End Of File");
+                    Console.WriteLine("Successful Build");
+                    CodeGenerator codeGenerator = new CodeGenerator(p.outputtedFileName,p.symbolTable);
+                    codeGenerator.Run();
                 }
             }
         }

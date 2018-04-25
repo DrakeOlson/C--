@@ -17,7 +17,7 @@ namespace Compiler
     public class Parser
     {
         private Lexer l = null;
-        private SymbolTable symbolTable = new SymbolTable();
+        public SymbolTable symbolTable = new SymbolTable();
         private int overallDepth = 0;
         private bool isFirstOverall = true;
         private int overallOffset = 0;
@@ -43,7 +43,7 @@ namespace Compiler
         private const string ax = "_AX";
         private bool unary = false;
         private int rightHandSide = 0;
-        private string outputtedFileName;
+        public string outputtedFileName;
         private string finalLeftHand;
         private string finalLeftHandLex;
         private bool inReturn = false;
@@ -53,8 +53,9 @@ namespace Compiler
         private bool multiPart = false;
         private Stack<string> expressionStack = new Stack<string>();
         private Stack<string> temps = new Stack<string>();
-
+        public List<string> literals = new List<string>();
         public bool hasSign = false;
+        private int stringTempCounter = 0;
 
         /// <summary>
         /// Default Constructor to create a Parser Object
@@ -679,8 +680,156 @@ namespace Compiler
         /// </summary>
         private void IOStat()
         {
-            //Lambda
+            if(Globals.Token == Globals.Symbol.cinT)
+            {
+                In_Stat();
+            }
+            else if(Globals.Token == Globals.Symbol.coutT)
+            {
+                Out_Stat();
+            }
+            else
+            {
+                Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Looking for IO Statement got Token: {Globals.Lexeme}");
+            }
+
         }
+
+        private void Out_Stat()
+        {
+            Match(Globals.Symbol.coutT);
+            Match(Globals.Symbol.coutsymT);
+           
+            if(Globals.Token == Globals.Symbol.idT)
+            {
+                TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
+                    
+                if (lookup == null)
+                {
+                    Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: {Globals.Lexeme} has not been declared.");
+                }
+                else if (lookup is ConstantEntry)
+                {
+                    Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Can't change the value of a constant.");
+                }
+                else
+                {
+                    WriteToFile($"wri {((VariableEntry)lookup).getBPValue()}");
+                }
+            }
+            else if(Globals.Token == Globals.Symbol.endlT)
+            {
+                Match(Globals.Symbol.endlT);
+                WriteToFile("writeln");
+            }
+            else if(Globals.Token == Globals.Symbol.literalT)
+            {
+                StringLiteral entry = new StringLiteral()
+                {
+                    lexeme = Globals.Attribute,
+                    depth = 1,
+                    tokenType = Globals.Symbol.literalT,
+                    tempVarName = getStringTemp()
+                };
+                symbolTable.insert(entry);
+                WriteToFile($"wrs {entry.lexeme}");
+                Match(Globals.Symbol.literalT);
+            }
+            Out_End();
+        }
+
+        private void Out_End()
+        {
+            if(Globals.Token == Globals.Symbol.coutsymT)
+            {
+                Match(Globals.Symbol.coutsymT);
+                if (Globals.Token == Globals.Symbol.idT)
+                {
+                    TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
+
+                    if (lookup == null)
+                    {
+                        Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: {Globals.Lexeme} has not been declared.");
+                    }
+                    else if (lookup is ConstantEntry)
+                    {
+                        Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Can't change the value of a constant.");
+                    }
+                    else
+                    {
+                        WriteToFile($"wri {((VariableEntry)lookup).getBPValue()}");
+                    }
+                }
+                else if (Globals.Token == Globals.Symbol.endlT)
+                {
+                    Match(Globals.Symbol.endlT);
+                    WriteToFile("wrln");
+                    Out_End();
+                }
+                else if (Globals.Token == Globals.Symbol.literalT)
+                {
+                    StringLiteral entry = new StringLiteral()
+                    {
+                        lexeme = Globals.Attribute,
+                        depth = 1,
+                        tokenType = Globals.Symbol.literalT,
+                        tempVarName = getStringTemp()
+                    };
+                    symbolTable.insert(entry);
+                    WriteToFile($"wrs {entry.lexeme}");
+                    Match(Globals.Symbol.literalT);
+                    Out_End();
+                }
+            }
+            
+        }
+
+        private void In_Stat()
+        {
+            Match(Globals.Symbol.cinT);
+            Match(Globals.Symbol.cinsymT);
+            TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
+            
+            if(lookup == null)
+            {
+                Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: {Globals.Lexeme} has not been declared.");
+            }
+            else if(lookup is ConstantEntry)
+            {
+                Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Can't change the value of a constant.");
+            }
+            else
+            {
+                Match(Globals.Symbol.idT);
+                WriteToFile($"rdi {((VariableEntry)lookup).getBPValue()}");
+                In_End();
+            }
+        }
+
+        private void In_End()
+        {
+            if(Globals.Token == Globals.Symbol.cinsymT)
+            {
+                Match(Globals.Symbol.cinsymT);
+                TableEntry lookup = symbolTable.lookup(Globals.Lexeme);
+
+                if (lookup == null)
+                {
+                    Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: {Globals.Lexeme} has not been declared.");
+                }
+                else if (lookup is ConstantEntry)
+                {
+                    Console.WriteLine($"Error: Line {Globals.LineNumber + 1}: Can't change the value of a constant.");
+                }
+                else
+                {
+                    Match(Globals.Symbol.idT);
+                    WriteToFile($"rdi {((VariableEntry)lookup).getBPValue()}");
+                    In_End();
+                }
+            }
+        }
+
         /// <summary>
         /// Assignstat -> idt = Expr | idt = FuncCall
         /// </summary>
@@ -1205,6 +1354,7 @@ namespace Compiler
                 WriteToFile($"{entry.lexeme} = {Globals.Lexeme}");
             }
             localOffset += 2;
+            sizeOfLocal += 2;
             localBasePointerCounter += 2;
             return returned;
         }
@@ -1224,6 +1374,7 @@ namespace Compiler
             localOffset += 2;
             localBasePointerCounter += 2;
             entry = temp;
+            sizeOfLocal += 2;
         }
 
         private void WriteToFile(string line)
@@ -1233,7 +1384,12 @@ namespace Compiler
                 output.WriteLine(line);
             }
         }
-
+        private string getStringTemp()
+        {
+            string returned = $"_S{stringTempCounter}";
+            stringTempCounter++;
+            return returned;
+        }
         /// <summary>
         /// Gets the offset of the current type
         /// </summary>

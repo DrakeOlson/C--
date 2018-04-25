@@ -14,7 +14,10 @@ namespace Compiler
     {
         public enum Symbol { unknownT, idT, ifT, elseT, whileT, floatT, intT, charT, breakT, continueT, voidT,
                              lparenT, rparenT, lbraceT, rbraceT, lbracketT, rbracketT, commaT, periodT,
-                             semicolonT, singlequoteT, assignopT, addopT, mulopT, relopT, literalT, eoft, constT, negateT, notT, returnT}; 
+                             semicolonT, singlequoteT, assignopT, addopT, mulopT, relopT, literalT, eoft, constT, negateT, notT, returnT,cinT,coutT,endlT,
+            cinsymT,
+            coutsymT
+        }; 
         public static Dictionary<string,Symbol> SymbolDictionary = new Dictionary<string, Symbol>();
         public static Symbol Token = Globals.Symbol.unknownT;
         public static string Lexeme = String.Empty;
