@@ -84,10 +84,6 @@ namespace Compiler
                 File.Delete(outputtedFileName);
                 Console.WriteLine("Error: No function named 'main'!");
             }
-            else
-            {
-                WriteToFile("Call proc main");
-            }
         }
 
         /// <summary>

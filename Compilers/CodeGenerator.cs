@@ -17,7 +17,6 @@ namespace Compiler
             lines = File.ReadAllLines(outputtedFileName);
             this.outputtedFileName = outputtedFileName.Remove(outputtedFileName.IndexOf('.')) + ".asm";
             this.symbolTable = symbolTable;
-            
         }
 
         public void Run()
@@ -26,6 +25,79 @@ namespace Compiler
             WriteToFile(".STACK 100H");
             WriteToFile(".DATA");
             WriteGlobals();
+            WriteToFile(".code");
+            WriteToFile("include io.asm");
+            ProcessTACFile();
+        }
+
+        private void ProcessTACFile()
+        {
+            foreach(string line in lines)
+            {
+                
+                if(!line.Contains("+") && !line.Contains("=-") && !line.Contains("*") && !line.Contains("/") && !line.Contains("-")) // a=b
+                {
+                    int indexOfEquals = line.IndexOf('=');
+                    string lefthandSide = line.Substring(0, indexOfEquals);
+                    lefthandSide = StripUnderScore(lefthandSide);
+                    string rightHandSide = line.Substring(indexOfEquals + 1);
+                    rightHandSide = StripUnderScore(rightHandSide);
+                    WriteToFile($"mov ax,{rightHandSide}");
+                    WriteToFile($"mov {lefthandSide},ax");
+                }
+                else if(line.Contains("=-") && !line.Contains("+") && !line.Contains("*") && !line.Contains("/") && !line.Contains("-")) //a=-b
+                {
+                    int indexOfEquals = line.IndexOf("=-");
+                    string lefthandSide = line.Substring(0, indexOfEquals);
+                    lefthandSide = StripUnderScore(lefthandSide);
+                    string rightHandSide = line.Substring(indexOfEquals + 1);
+                    rightHandSide = StripUnderScore(rightHandSide);
+                    WriteToFile($"mov ax, -{rightHandSide}");
+                    WriteToFile($"mov {lefthandSide},ax");
+                }
+                else if (line.Contains("+") && !line.Contains("=-") && !line.Contains("*") && !line.Contains("/") && !line.Contains("-")) //a= b + c
+                {
+                    int indexOfEquals = line.IndexOf("=-");
+                    string lefthandSide = line.Substring(0, indexOfEquals);
+                    lefthandSide = StripUnderScore(lefthandSide);
+                    string rightHandSide = line.Substring(indexOfEquals + 1);
+                    int leftOperandIndex = rightHandSide.IndexOf('+');
+                    string leftOperand = rightHandSide.Substring(0, leftOperandIndex);
+                    leftOperand = StripUnderScore(leftOperand);
+                    string rightOperand = rightHandSide.Substring(leftOperandIndex + 1);
+                    rightOperand = StripUnderScore(rightOperand);
+                    WriteToFile($"add {leftOperand},{rightOperand}");
+                    WriteToFile($"mov {lefthandSide},ax");
+                }
+                else if (line.Contains("*") && !line.Contains("+") && !line.Contains("=-") && !line.Contains("/") && !line.Contains("-")) //a= b * c
+                {
+                    int indexOfEquals = line.IndexOf("=-");
+                    string lefthandSide = line.Substring(0, indexOfEquals);
+                    lefthandSide = StripUnderScore(lefthandSide);
+                    string rightHandSide = line.Substring(indexOfEquals + 1);
+                    int leftOperandIndex = rightHandSide.IndexOf('+');
+                    string leftOperand = rightHandSide.Substring(0, leftOperandIndex);
+                    leftOperand = StripUnderScore(leftOperand);
+                    string rightOperand = rightHandSide.Substring(leftOperandIndex + 1);
+                    rightOperand = StripUnderScore(rightOperand);
+                    WriteToFile($"mov ax,{leftOperand}");
+                    WriteToFile($"mov bx,{rightOperand}");
+                    WriteToFile($"imul bx");
+                    WriteToFile($"mov {lefthandSide},ax");
+                }
+            }
+        }
+
+        private string StripUnderScore(string lefthandSide)
+        {
+            if (lefthandSide.StartsWith("_"))
+            {
+                return $"[{lefthandSide.Substring(1)}]";
+            }
+            else
+            {
+                return lefthandSide;
+            }
         }
 
         private void WriteGlobals()

@@ -14,7 +14,7 @@ namespace Compiler
 
         public StringLiteral()
         {
-            assemblyLiteral = $"{Globals.Attribute}$";
+            assemblyLiteral = $"{Globals.Attribute},\"$\"";
         }
 
         public override void printEntry()
