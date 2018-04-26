@@ -377,6 +377,7 @@ namespace Compiler
                 insertSymbol(entry);
                 parameterOffset += currentTypeSize;
                 ParamTrail();
+                actualParameters = reverseParams(actualParameters);
             }
             else{
                 //Lambda
@@ -835,6 +836,7 @@ namespace Compiler
         /// </summary>
         private void AssignStat()
         {
+            int tempInt;
             TableEntry leftHand = symbolTable.lookup(Globals.Lexeme);
             if(leftHand == null && Globals.Lexeme != "-")
             {
@@ -874,6 +876,23 @@ namespace Compiler
                 VariableEntry temp = leftHand as VariableEntry;
                 FuncCall();
                 WriteToFile($"{temp.getBPValue()} = {ax}");
+            }
+            else if(lookup == null && Globals.Lexeme == "("){
+                TableEntry idptr = null;
+                TableEntry Eplace = null;
+                idptr = leftHand;
+                Expr(ref Eplace);
+                if(Eplace is VariableEntry)
+                {
+                    VariableEntry lefthandptr = idptr as VariableEntry;
+                    VariableEntry temp = Eplace as VariableEntry;
+                    WriteToFile($"{lefthandptr.getBPValue()}={temp.getBPValue()}");
+                }
+                else
+                {
+                    VariableEntry lefthandptr = idptr as VariableEntry;
+                    WriteToFile($"{lefthandptr.getBPValue()}={Eplace.lexeme}");
+                }              
             }
             else if (lookup == null)
             {
@@ -959,7 +978,7 @@ namespace Compiler
                 //Lambda
             }
 
-            passedParams = reverseParams(passedParams);
+            //passedParams = reverseParams(passedParams);
         }
 
         private Stack<object> reverseParams(Stack<object> passedParams)
@@ -967,6 +986,17 @@ namespace Compiler
             Stack<object> temp = new Stack<object>();
 
             while(passedParams.Count != 0)
+            {
+                temp.Push(passedParams.Pop());
+            }
+            return temp;
+        }
+
+        private Stack<TableEntry> reverseParams(Stack<TableEntry> passedParams)
+        {
+            Stack<TableEntry> temp = new Stack<TableEntry>();
+
+            while (passedParams.Count != 0)
             {
                 temp.Push(passedParams.Pop());
             }
@@ -1263,13 +1293,13 @@ namespace Compiler
                         {
                             IntegerConstantEntry var = temp as IntegerConstantEntry;
                             int tempValue = -var.value;
-                            WriteToFile($"{Tplace.lexeme} = {-tempValue}");
+                            WriteToFile($"{Tplace.lexeme} = {tempValue}");
                         }
                         else if(temp is RealConstantEntry)
                         {
                             RealConstantEntry var = temp as RealConstantEntry;
                             float tempValue = -var.value;
-                            WriteToFile($"{Tplace.lexeme} = {-tempValue}");
+                            WriteToFile($"{Tplace.lexeme} = {tempValue}");
                         }
                     }
                 }

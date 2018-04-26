@@ -28,8 +28,8 @@ namespace Compiler
                 if (Globals.Token == Globals.Symbol.eoft)
                 {
                     Console.WriteLine("Successful Build");
-                    CodeGenerator codeGenerator = new CodeGenerator(p.outputtedFileName,p.symbolTable);
-                    codeGenerator.Run();
+                    //CodeGenerator codeGenerator = new CodeGenerator(p.outputtedFileName,p.symbolTable);
+                    //codeGenerator.Run();
                 }
             }
         }

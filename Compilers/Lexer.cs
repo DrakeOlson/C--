@@ -18,6 +18,7 @@ namespace Compiler
         public string[] lines;
         private int currentPosition = 0;
         private bool stringLiteral = false;
+        private bool isNegative = false;
 
         /// <summary>
         /// This constructor will see if there is a file existing and if so open and read all lines into an array
@@ -91,7 +92,7 @@ namespace Compiler
             {
                 ProcessWordToken();
             }
-            else if (Char.IsNumber(Globals.Lexeme[0]) || (Globals.Lexeme == "." && Char.IsNumber(lines[Globals.LineNumber][currentPosition])))
+            else if (Char.IsNumber(Globals.Lexeme[0]) || (Globals.Lexeme[0] == '-' &&  Char.IsNumber(Globals.currentChar.GetValueOrDefault()))  || (Globals.Lexeme == "." && Char.IsNumber(lines[Globals.LineNumber][currentPosition])))
             {
                 ProcessNumberToken();
             }
@@ -324,6 +325,7 @@ namespace Compiler
                     }
                         return;
                 }
+
             }
            if(decimalFlag == false)
             {
